@@ -1,30 +1,44 @@
 import { useEffect, useRef, useState } from 'react';
 import { applyVisemeToSvg } from '../utils/visemeHelper';
+import { generateLipSyncVideo, base64ToVideoUrl, checkWav2LipHealth, generateTTSAudio } from '../services/wav2lipService';
 
 interface AvatarProps {
     text: string;
     onSpeakingComplete?: () => void;
     onClick?: () => void;
     isRecording?: boolean;
+    avatarImage?: string;  // Base64 image for Wav2Lip (optional)
+    useWav2Lip?: boolean;  // Enable Wav2Lip video mode (default: false)
 }
 
-export const Avatar = ({ text, onSpeakingComplete, onClick, isRecording = false }: AvatarProps) => {
+export const Avatar = ({ text, onSpeakingComplete, onClick, isRecording = false, avatarImage, useWav2Lip = false }: AvatarProps) => {
     const svgRef = useRef<SVGSVGElement | null>(null);
+    const videoRef = useRef<HTMLVideoElement | null>(null);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [videoUrl, setVideoUrl] = useState<string | null>(null);
+    const [isWav2LipReady, setIsWav2LipReady] = useState(false);
     const animationFrameRef = useRef<number | null>(null);
 
-    // Function to simulate lip movement
+    // Check Wav2Lip availability on mount
+    useEffect(() => {
+        if (useWav2Lip) {
+            checkWav2LipHealth().then(health => {
+                const ready = health?.service_ready || health?.all_models_ready || false;
+                setIsWav2LipReady(ready);
+                if (!ready) {
+                    console.warn('[Avatar] Wav2Lip not ready, falling back to SVG mode');
+                }
+            });
+        }
+    }, [useWav2Lip]);
+
+    // Function to simulate lip movement (SVG Fallback)
     const animateMouth = () => {
         if (svgRef.current) {
-            // Generate a random viseme ID between 0 and 20
-            // We favor open mouth visemes (like 1, 2, 9, 11) slightly more often for realism
-            // 0 is silence (closed mouth)
             const randomViseme = Math.floor(Math.random() * 21);
             applyVisemeToSvg(svgRef.current, randomViseme);
         }
-
-        // Continue animation loop
         animationFrameRef.current = requestAnimationFrame(animateMouth);
     };
 
@@ -33,7 +47,6 @@ export const Avatar = ({ text, onSpeakingComplete, onClick, isRecording = false 
             cancelAnimationFrame(animationFrameRef.current);
             animationFrameRef.current = null;
         }
-        // Ensure mouth is closed when stopped
         if (svgRef.current) {
             applyVisemeToSvg(svgRef.current, 0);
         }
@@ -42,46 +55,114 @@ export const Avatar = ({ text, onSpeakingComplete, onClick, isRecording = false 
     useEffect(() => {
         if (!text || text.trim() === '') return;
 
-        // Cancel any current speech
-        window.speechSynthesis.cancel();
+        const processWithWav2Lip = async () => {
+            if (!useWav2Lip || !isWav2LipReady || !avatarImage) {
+                processWithSVGMode();
+                return;
+            }
 
-        const utterance = new SpeechSynthesisUtterance(text);
+            try {
+                setIsSpeaking(true);
+                setError(null);
+                console.log('[Avatar] Generating Wav2Lip video...');
 
-        // Optional: Select a voice (English default for now)
-        const voices = window.speechSynthesis.getVoices();
-        const enVoice = voices.find(v => v.lang.startsWith('en'));
-        if (enVoice) utterance.voice = enVoice;
+                // 1. Generate Audio using Piper TTS (Pronunciation Service)
+                const audioBlob = await generateTTSAudio(text);
 
-        utterance.onstart = () => {
-            setIsSpeaking(true);
-            setError(null);
-            console.log('Browser TTS started');
-            // Start lip sync simulation
-            animateMouth();
+                if (!audioBlob) {
+                    console.warn('[Avatar] TTS failed, falling back to SVG');
+                    processWithSVGMode();
+                    return;
+                }
+
+                // 2. Generate Lip-Sync Video
+                const videoBase64 = await generateLipSyncVideo(avatarImage, audioBlob, 'gan'); // Use GAN by default
+
+                if (!videoBase64) {
+                    console.warn('[Avatar] Wav2Lip failed, falling back to SVG');
+                    processWithSVGMode();
+                    return;
+                }
+
+                // 3. Play Video
+                const url = base64ToVideoUrl(videoBase64);
+                setVideoUrl(url);
+
+                if (videoRef.current) {
+                    videoRef.current.src = url;
+                    videoRef.current.onended = () => {
+                        setIsSpeaking(false);
+                        onSpeakingComplete?.();
+                        URL.revokeObjectURL(url);
+                        setVideoUrl(null);
+                    };
+
+                    // Handle play promise
+                    const playPromise = videoRef.current.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(error => {
+                            console.error('[Avatar] Video play error:', error);
+                            setIsSpeaking(false);
+                            onSpeakingComplete?.();
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('[Avatar] Wav2Lip error:', error);
+                setError('Wav2Lip failed');
+                processWithSVGMode();
+            }
         };
 
-        utterance.onend = () => {
-            console.log('Browser TTS completed');
-            setIsSpeaking(false);
-            stopAnimation();
-            onSpeakingComplete?.();
+        const processWithSVGMode = () => {
+            // Cancel any current speech
+            window.speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+
+            // Select voice
+            const voices = window.speechSynthesis.getVoices();
+            const enVoice = voices.find(v => v.lang.startsWith('en'));
+            if (enVoice) utterance.voice = enVoice;
+
+            utterance.onstart = () => {
+                setIsSpeaking(true);
+                setError(null);
+                animateMouth();
+            };
+
+            utterance.onend = () => {
+                setIsSpeaking(false);
+                stopAnimation();
+                onSpeakingComplete?.();
+            };
+
+            utterance.onerror = (event) => {
+                console.error('Browser TTS error:', event);
+                setError('TTS Error occurred');
+                setIsSpeaking(false);
+                stopAnimation();
+            };
+
+            window.speechSynthesis.speak(utterance);
         };
 
-        utterance.onerror = (event) => {
-            console.error('Browser TTS error:', event);
-            setError('TTS Error occurred');
-            setIsSpeaking(false);
-            stopAnimation();
-        };
-
-        window.speechSynthesis.speak(utterance);
+        // Choose mode
+        if (useWav2Lip && isWav2LipReady && avatarImage) {
+            processWithWav2Lip();
+        } else {
+            processWithSVGMode();
+        }
 
         // Cleanup function
         return () => {
             window.speechSynthesis.cancel();
             stopAnimation();
+            if (videoUrl) {
+                URL.revokeObjectURL(videoUrl);
+            }
         };
-    }, [text, onSpeakingComplete]);
+    }, [text, onSpeakingComplete, useWav2Lip, isWav2LipReady, avatarImage]);
 
     return (
         <div
@@ -94,24 +175,41 @@ export const Avatar = ({ text, onSpeakingComplete, onClick, isRecording = false 
                     Error: {error}
                 </div>
             )}
-            <object
-                ref={(el) => {
-                    if (el) {
-                        const svgDoc = el.contentDocument;
-                        if (svgDoc) {
-                            svgRef.current = svgDoc.querySelector('svg');
+
+            {/* Video Player (Wav2Lip) */}
+            {videoUrl && (
+                <video
+                    ref={videoRef}
+                    width="200"
+                    height="200"
+                    style={{
+                        border: '1px solid #ccc',
+                        borderRadius: '8px',
+                        display: 'block'
+                    }}
+                />
+            )}
+
+            {/* SVG Avatar (Fallback) - Only show if no video */}
+            {!videoUrl && (
+                <object
+                    ref={(el) => {
+                        if (el) {
+                            const svgDoc = el.contentDocument;
+                            if (svgDoc) {
+                                svgRef.current = svgDoc.querySelector('svg');
+                            }
                         }
-                    }
-                }}
-                data="/avatars/avatar.svg"
-                type="image/svg+xml"
-                width="200"
-                height="200"
-                style={{ border: '1px solid #ccc', borderRadius: '8px' }}
-            >
-                {/* Fallback for browsers that don't support object */}
-                <img src="/avatars/avatar.svg" alt="Avatar" width="200" height="200" />
-            </object>
+                    }}
+                    data="/avatars/avatar.svg"
+                    type="image/svg+xml"
+                    width="200"
+                    height="200"
+                    style={{ border: '1px solid #ccc', borderRadius: '8px' }}
+                >
+                    <img src="/avatars/avatar.svg" alt="Avatar" width="200" height="200" />
+                </object>
+            )}
 
             {/* Status Indicator */}
             <div

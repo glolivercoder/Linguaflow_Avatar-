@@ -94,6 +94,29 @@ if exist backend\vosk_service (
 timeout /t 3 /nobreak >nul
 
 REM ========================================
+REM 3.5. INICIAR WAV2LIP SERVICE
+REM ========================================
+echo [3.5/4] Iniciando Wav2Lip Service (Porta 8300)...
+echo [3.5/4] Iniciando Wav2Lip Service (Porta 8300)... >> "%LOG_FILE%"
+if exist backend\wav2lip_service (
+    cd backend\wav2lip_service
+    if not exist venv (
+        echo [INFO] Criando ambiente virtual Wav2Lip...
+        echo [INFO] Criando ambiente virtual Wav2Lip... >> "%LOG_FILE%"
+        python -m venv venv
+        call venv\Scripts\activate
+        pip install -r requirements.txt
+    )
+    
+    start "LinguaFlow Avatar - Wav2Lip" cmd /k "venv\Scripts\activate && python main.py"
+    echo [OK] Wav2Lip Service iniciado >> "%LOG_FILE%"
+    cd ..\..
+) else (
+    echo [AVISO] Wav2Lip Service nao encontrado. >> "%LOG_FILE%"
+)
+timeout /t 3 /nobreak >nul
+
+REM ========================================
 REM 4. INICIAR FRONTEND
 REM ========================================
 echo [4/4] Iniciando Frontend (Porta 3001)...
@@ -115,6 +138,7 @@ echo  Servidores ativos:
 echo    Pronunciation:  http://localhost:8000
 echo    Proxy:          http://localhost:3100
 echo    Vosk (opt):     http://localhost:8200
+echo    Wav2Lip:        http://localhost:8300
 echo    Frontend:       http://localhost:3001
 echo.
 echo  Log disponivel em: %LOG_FILE%

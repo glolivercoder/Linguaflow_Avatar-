@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  pronunciation-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    image: linguaflow/pronunciation:latest
+    container_name: linguaflow-pronunciation
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount references directory for persistent storage
+      - ./references:/app/references
+      # Mount temp directory for processing
+      - ./temp:/app/temp
+      # Uncomment for development hot reload
+      # - .:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=INFO
+      - PIPER_VOICE_MODEL=/app/models/en_US-lessac-medium.onnx
+      - OPENSMILE_FEATURE_SET=eGeMAPSv02
+      - MAX_AUDIO_SIZE_MB=10
+      - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://localhost:3001
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - linguaflow-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 512M
+
+networks:
+  linguaflow-network:
+    driver: bridge

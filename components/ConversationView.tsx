@@ -2,6 +2,7 @@
 
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { Avatar } from './Avatar';
 // FIX: Import the 'decode' function to handle audio data from the server.
 import { encode, decodeAudioData, decode } from '../services/geminiService';
 import { chatWithAudio, encodeInt16ToWavBase64, mergeInt16Chunks } from '../services/voskService';
@@ -105,6 +106,26 @@ interface ConversationViewProps {
 }
 
 const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashcard, isAutoPreprocessing, autoPreprocessStatus, autoPreprocessProgress }) => {
+    const [avatarImageBase64, setAvatarImageBase64] = useState<string | null>(null);
+
+    // Load default avatar image
+    useEffect(() => {
+        const loadAvatar = async () => {
+            try {
+                const response = await fetch('/avatars/default_avatar.png');
+                const blob = await response.blob();
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setAvatarImageBase64(reader.result as string);
+                };
+                reader.readAsDataURL(blob);
+            } catch (e) {
+                console.error('Failed to load default avatar:', e);
+            }
+        };
+        loadAvatar();
+    }, []);
+
     const [isSessionActive, setIsSessionActive] = useState(false);
     const [status, setStatus] = useState('Pronto para começar');
     const [userTranscript, setUserTranscript] = useState('');
@@ -1082,13 +1103,23 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
                                     </div>
                                 );
                             })}
-
                         </div>
                     </aside>
                 )}
 
                 <div className="flex flex-col gap-4 flex-1">
                     <div className="w-full max-w-2xl mx-auto lg:mx-0 bg-gray-800 p-6 rounded-lg shadow-lg">
+
+                        {/* Avatar Display */}
+                        <div className="flex justify-center mb-6">
+                            <Avatar
+                                text={lastTurn?.model || ''}
+                                avatarImage={avatarImageBase64 || undefined}
+                                useWav2Lip={settings.useWav2Lip ?? true}
+                                isRecording={isSessionActive}
+                            />
+                        </div>
+
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
                             <p className="text-center sm:text-left text-cyan-400 flex-1">{status}</p>
                             <div className="flex items-center justify-center gap-2 text-xs">
@@ -1184,8 +1215,8 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
                         <PronunciationPractice settings={settings} />
                         <GroundedSearch />
                     </div>
-                </div>
-            </div>
+                </div >
+            </div >
 
             {isCategoryModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
@@ -1250,7 +1281,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
                     </div>
                 </div>
             )}
-        </div>
+        </div >
     );
 };
 

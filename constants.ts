@@ -18,15 +18,15 @@ export const SUPPORTED_LANGUAGES: Language[] = [
 ];
 
 export const VOICE_CONFIG: { [key: string]: { male: string; female: string; neutral: string } } = {
-    'en-US': { male: 'Fenrir', female: 'Kore', neutral: 'Puck' },
-    'es-ES': { male: 'Fenrir', female: 'Kore', neutral: 'Puck' },
-    'pt-BR': { male: 'Fenrir', female: 'Kore', neutral: 'Puck' },
-    'zh-CN': { male: 'Fenrir', female: 'Kore', neutral: 'Puck' },
-    'ja-JP': { male: 'Fenrir', female: 'Kore', neutral: 'Puck' },
-    'ru-RU': { male: 'Fenrir', female: 'Kore', neutral: 'Puck' },
-    'fr-FR': { male: 'Fenrir', female: 'Kore', neutral: 'Puck' },
-    'it-IT': { male: 'Fenrir', female: 'Kore', neutral: 'Puck' },
-    'eo': { male: 'Fenrir', female: 'Kore', neutral: 'Puck' },
+  'en-US': { male: 'Fenrir', female: 'Kore', neutral: 'Puck' },
+  'es-ES': { male: 'Fenrir', female: 'Kore', neutral: 'Puck' },
+  'pt-BR': { male: 'Fenrir', female: 'Kore', neutral: 'Puck' },
+  'zh-CN': { male: 'Fenrir', female: 'Kore', neutral: 'Puck' },
+  'ja-JP': { male: 'Fenrir', female: 'Kore', neutral: 'Puck' },
+  'ru-RU': { male: 'Fenrir', female: 'Kore', neutral: 'Puck' },
+  'fr-FR': { male: 'Fenrir', female: 'Kore', neutral: 'Puck' },
+  'it-IT': { male: 'Fenrir', female: 'Kore', neutral: 'Puck' },
+  'eo': { male: 'Fenrir', female: 'Kore', neutral: 'Puck' },
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -39,4 +39,5 @@ export const DEFAULT_SETTINGS: Settings = {
   openRouterModelId: 'openrouter/auto',
   openRouterIncludeFree: true,
   openRouterIncludePaid: true,
+  useWav2Lip: true,
 };

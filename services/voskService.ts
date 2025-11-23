@@ -42,8 +42,8 @@ export async function chatWithAudio({
       },
       body: JSON.stringify({
         model,
-        audio_base64: audioBase64,
-        system_prompt: systemPrompt,
+        audioBase64: audioBase64,
+        systemPrompt: systemPrompt,
         language,
       }),
     });
@@ -51,7 +51,7 @@ export async function chatWithAudio({
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(
-        errorData.detail || `Error ${response.status}: ${response.statusText}` 
+        errorData.detail || `Error ${response.status}: ${response.statusText}`
       );
     }
 
@@ -134,13 +134,13 @@ export function encodeInt16ToWavBase64(
  */
 export function isAudioSilent(samples: Int16Array, threshold = 0.002): boolean {
   if (samples.length === 0) return true;
-  
+
   let sumSquares = 0;
   for (let i = 0; i < samples.length; i++) {
     const normalized = samples[i] / 32768; // Normalize to [-1, 1]
     sumSquares += normalized * normalized;
   }
-  
+
   const rms = Math.sqrt(sumSquares / samples.length);
   return rms < threshold;
 }
@@ -152,12 +152,12 @@ export function mergeInt16Chunks(chunks: Int16Array[]): Int16Array {
   const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
   const result = new Int16Array(totalLength);
   let offset = 0;
-  
+
   for (const chunk of chunks) {
     result.set(chunk, offset);
     offset += chunk.length;
   }
-  
+
   return result;
 }
 

@@ -284,6 +284,51 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChange,
       <h2 className="text-2xl font-bold mb-6 text-cyan-400">Configurações</h2>
 
       <div className="space-y-6 max-w-2xl">
+
+        {/* Avatar Settings */}
+        <div className="p-4 bg-gray-800 rounded-lg space-y-3 border-l-4 border-purple-500">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-200 flex items-center gap-2">
+              <span className="text-2xl">👤</span>
+              Avatar & Lip-Sync
+            </h3>
+            <p className="mt-1 text-sm text-gray-400">
+              Configure o comportamento do avatar e a sincronização labial.
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h4 className="text-sm font-medium text-gray-200">Sincronização Labial Realista (Wav2Lip)</h4>
+              <p className="text-xs text-gray-400">
+                Usa IA para mover os lábios do avatar em sincronia com a fala. Requer mais processamento.
+                Se desativado, usará uma animação simples.
+              </p>
+            </div>
+            <label className="inline-flex items-center cursor-pointer">
+              <span className="mr-2 text-sm text-gray-300">Off</span>
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={settings.useWav2Lip ?? true}
+                  onChange={(event) => {
+                    onSettingsChange({
+                      ...settings,
+                      useWav2Lip: event.target.checked,
+                    });
+                  }}
+                  className="sr-only"
+                />
+                <div className={`w-12 h-6 rounded-full transition-colors ${settings.useWav2Lip ? 'bg-purple-500' : 'bg-gray-600'}`}></div>
+                <div
+                  className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${settings.useWav2Lip ? 'translate-x-6' : ''}`}
+                ></div>
+              </div>
+              <span className="ml-2 text-sm text-gray-300">On</span>
+            </label>
+          </div>
+        </div>
+
         <div className="p-4 bg-gray-800 rounded-lg space-y-3">
           <div>
             <h3 className="text-lg font-semibold text-gray-200">Backup e Restauração</h3>

@@ -1,0 +1,35 @@
+################################################################################
+# Arquivo de exemplo (.env.local)
+# Copie/renomeie para `.env` e substitua os valores placeholder pelas suas chaves.
+################################################################################
+
+# === Serviços existentes ===
+# Chave de API do Google Gemini (obrigatória para recursos online)
+GEMINI_API_KEY=AIzaSyCeUBionyHBt5aPSdwj9LO2onH9IwQP2zU
+# Chave de API do Pixabay (opcional, usada para busca de imagens)
+PIXABAY_API_KEY=52213831-3505936bfee7dbfc3aa080075
+
+# === Integração com OpenRouter ===
+# Chave de API do OpenRouter (obrigatória para o novo serviço Vosk/LLM)
+OPENROUTER_API_KEY=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
+
+# Base URL do OpenRouter — mantenha o valor padrão, salvo se usar proxy próprio
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+# Modelo padrão a ser carregado no backend/frontend ao iniciar (opcional)
+OPENROUTER_DEFAULT_MODEL=openrouter/auto
+
+# === Caminhos/Modelos Offline ===
+# Caminho padrão para o modelo Vosk offline em Português (ajuste se necessário)
+VOSK_MODEL_PATH=backend/vosk_service/model
+# Caminho para modelos Vosk em Inglês (ajuste se necessário)
+VOSK_MODEL_PATH_EN_US=F:/Projetos2025BKP/Llinguaflow_bug/backend/vosk-models/vosk-model-small-en-us-0.15
+VOSK_MODEL_PATH_EN_US_GRAPH=F:/Projetos2025BKP/Llinguaflow_bug/backend/vosk-models/vosk-model-en-us-0.22-lgraph
+# Caminho para o executável/pasta do Piper (usado para síntese de voz offline)
+PIPER_VOICE_DIR=backend/piper-voices
+
+# === Configurações do Proxy e Frontend (mantidas como referência) ===
+PROXY_PORT=3100
+ALLOWED_ORIGINS=http://localhost:3001
+ALLOWED_ORIGINS=http://localhost:3003,http://localhost:5173
+VITE_PROXY_URL=http://localhost:3100
+VITE_PROXY_WS_URL=ws://localhost:3100/gemini/live

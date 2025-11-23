@@ -1106,63 +1106,47 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
                         </div>
                     </aside>
                 )}
-
-                <div className="flex flex-col gap-4 flex-1">
-                    <div className="w-full max-w-2xl mx-auto lg:mx-0 bg-gray-800 p-6 rounded-lg shadow-lg">
-
-                        {/* Avatar Display */}
-                        <div className="flex justify-center mb-6">
-                            <Avatar
-                                text={lastTurn?.model || ''}
-                                avatarImage={settings.avatarPhoto || avatarImageBase64}
-                                useWav2Lip={settings.useWav2Lip ?? true}
-                                isRecording={isSessionActive}
-                            />
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-                            <p className="text-center sm:text-left text-cyan-400 flex-1">{status}</p>
-                            <div className="flex items-center justify-center gap-2 text-xs">
-                                {sessionMode === 'vosk' && (
-                                    <span className="inline-flex items-center gap-2 rounded-full bg-amber-500/20 border border-amber-500/60 text-amber-200 px-3 py-1">
-                                        <Icons.ChipIcon className="w-4 h-4" />
-                                        Modo offline Vosk
-                                    </span>
+                <span className="inline-flex items-center gap-2 rounded-full bg-amber-500/20 border border-amber-500/60 text-amber-200 px-3 py-1">
+                    <Icons.ChipIcon className="w-4 h-4" />
+                    Modo offline Vosk
+                </span>
                                 )}
-                                {sessionMode === 'gemini' && (
-                                    <span className="inline-flex items-center gap-2 rounded-full bg-cyan-500/20 border border-cyan-500/60 text-cyan-200 px-3 py-1">
-                                        <Icons.WifiIcon className="w-4 h-4" />
-                                        Modo online Gemini
-                                    </span>
-                                )}
-                                {isProcessingVosk && (
-                                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/60 text-emerald-200 animate-pulse">
-                                        <Icons.ClockIcon className="w-4 h-4" />
-                                        Processando áudio offline...
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                        {settings.useVoskStt && (
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                                <label htmlFor="vosk-language" className="text-sm text-gray-300">
-                                    Idioma da transcrição offline
-                                </label>
-                                <select
-                                    id="vosk-language"
-                                    value={voskLanguage}
-                                    onChange={(event) => setVoskLanguage(event.target.value)}
-                                    className="w-full sm:w-64 bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                                    disabled={isSessionActive && sessionMode === 'vosk'}
-                                >
-                                    {VOSK_LANGUAGE_OPTIONS.map((option) => (
-                                        <option key={option.value} value={option.value}>
-                                            {option.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        )}
+                {sessionMode === 'gemini' && (
+                    <span className="inline-flex items-center gap-2 rounded-full bg-cyan-500/20 border border-cyan-500/60 text-cyan-200 px-3 py-1">
+                        <Icons.WifiIcon className="w-4 h-4" />
+                        Modo online Gemini
+                    </span>
+                )}
+                {isProcessingVosk && (
+                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/60 text-emerald-200 animate-pulse">
+                        <Icons.ClockIcon className="w-4 h-4" />
+                        Processando áudio offline...
+                    </span>
+                )}
+            </div>
+        </div>
+                        {
+        settings.useVoskStt && (
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                <label htmlFor="vosk-language" className="text-sm text-gray-300">
+                    Idioma da transcrição offline
+                </label>
+                <select
+                    id="vosk-language"
+                    value={voskLanguage}
+                    onChange={(event) => setVoskLanguage(event.target.value)}
+                    className="w-full sm:w-64 bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    disabled={isSessionActive && sessionMode === 'vosk'}
+                >
+                    {VOSK_LANGUAGE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                            {option.label}
+                        </option>
+                    ))}
+                </select>
+            </div>
+        )
+    }
                         <div className="text-center mb-6 flex flex-col items-center gap-4">
                             <button
                                 onClick={isSessionActive ? stopConversation : startConversation}
@@ -1202,85 +1186,87 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
                                 <p className="text-lg min-h-[28px]">{modelTranscript}</p>
                             </div>
                         </div>
-                        {lastTurn && (
-                            <div className="mt-4 text-center">
-                                <button onClick={handleAddFlashcard} className="text-cyan-400 hover:text-cyan-300 flex items-center justify-center gap-2 mx-auto">
-                                    <Icons.PlusCircleIcon className="w-5 h-5" />
-                                    Adicionar ao Flashcards
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                    <div className="flex flex-col gap-4">
-                        <PronunciationPractice settings={settings} />
-                        <GroundedSearch />
-                    </div>
+    {
+        lastTurn && (
+            <div className="mt-4 text-center">
+                <button onClick={handleAddFlashcard} className="text-cyan-400 hover:text-cyan-300 flex items-center justify-center gap-2 mx-auto">
+                    <Icons.PlusCircleIcon className="w-5 h-5" />
+                    Adicionar ao Flashcards
+                </button>
+            </div>
+        )
+    }
+                    </div >
+    <div className="flex flex-col gap-4">
+        <PronunciationPractice settings={settings} />
+        <GroundedSearch />
+    </div>
                 </div >
             </div >
 
-            {isCategoryModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-                    <div className="w-full max-w-4xl max-h-[85vh] overflow-y-auto bg-gray-900 border border-gray-700 rounded-xl shadow-2xl p-6 space-y-6">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-2xl font-semibold text-cyan-400">Categorias de conversa</h2>
-                            <button onClick={() => setIsCategoryModalOpen(false)} className="text-gray-400 hover:text-gray-200">
-                                <Icons.XMarkIcon className="w-6 h-6" />
-                            </button>
-                        </div>
-                        {isTranslatingCategories && (
-                            <p className="text-sm text-gray-300">Traduzindo conteúdo para {learningLanguageName}...</p>
-                        )}
-                        <div className="grid gap-4 md:grid-cols-2">
-                            {CATEGORY_KEYS.map((key) => {
-                                const baseDefinition = CATEGORY_DEFINITIONS[key];
-                                const translated = translatedCategories[key];
-                                return (
-                                    <div key={key} className={`rounded-lg border ${selectedCategoryKey === key ? 'border-cyan-500' : 'border-gray-700'} bg-gray-800 p-4 flex flex-col gap-3`}>
-                                        <div>
-                                            <h3 className="text-lg font-semibold text-white">{translated?.title || baseDefinition.title}</h3>
-                                            <p className="text-sm text-gray-300">{translated?.description || baseDefinition.description}</p>
-                                        </div>
-                                        <div className="space-y-3">
-                                            {baseDefinition.sections.map((section, index) => {
-                                                const translatedSection = translated?.sections[index];
-                                                return (
-                                                    <div key={index} className="bg-gray-900/60 border border-gray-700 rounded-md p-3 space-y-2">
-                                                        <h4 className="text-sm font-semibold text-cyan-300">
-                                                            {translatedSection?.heading || section.heading}
-                                                        </h4>
-                                                        {section.type === 'qa' ? (
-                                                            <ul className="space-y-2 text-sm text-gray-200">
-                                                                {(translatedSection?.items || section.items).map((item, itemIndex) => (
-                                                                    <li key={itemIndex} className="border border-gray-700 rounded-md p-2 bg-gray-900/40">
-                                                                        <p className="font-medium text-white">{(item as QAItem).question}</p>
-                                                                        <p className="text-gray-300">{(item as QAItem).answer}</p>
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        ) : (
-                                                            <ul className="space-y-1 text-sm text-gray-200 list-disc list-inside">
-                                                                {(translatedSection?.items || section.items).map((item, itemIndex) => (
-                                                                    <li key={itemIndex}>{item as string}</li>
-                                                                ))}
-                                                            </ul>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                        <button
-                                            onClick={() => handleSelectCategory(key)}
-                                            className="mt-auto w-full py-2 px-4 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold rounded-md"
-                                        >
-                                            Praticar esta categoria
-                                        </button>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
+    { isCategoryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+            <div className="w-full max-w-4xl max-h-[85vh] overflow-y-auto bg-gray-900 border border-gray-700 rounded-xl shadow-2xl p-6 space-y-6">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-semibold text-cyan-400">Categorias de conversa</h2>
+                    <button onClick={() => setIsCategoryModalOpen(false)} className="text-gray-400 hover:text-gray-200">
+                        <Icons.XMarkIcon className="w-6 h-6" />
+                    </button>
                 </div>
-            )}
+                {isTranslatingCategories && (
+                    <p className="text-sm text-gray-300">Traduzindo conteúdo para {learningLanguageName}...</p>
+                )}
+                <div className="grid gap-4 md:grid-cols-2">
+                    {CATEGORY_KEYS.map((key) => {
+                        const baseDefinition = CATEGORY_DEFINITIONS[key];
+                        const translated = translatedCategories[key];
+                        return (
+                            <div key={key} className={`rounded-lg border ${selectedCategoryKey === key ? 'border-cyan-500' : 'border-gray-700'} bg-gray-800 p-4 flex flex-col gap-3`}>
+                                <div>
+                                    <h3 className="text-lg font-semibold text-white">{translated?.title || baseDefinition.title}</h3>
+                                    <p className="text-sm text-gray-300">{translated?.description || baseDefinition.description}</p>
+                                </div>
+                                <div className="space-y-3">
+                                    {baseDefinition.sections.map((section, index) => {
+                                        const translatedSection = translated?.sections[index];
+                                        return (
+                                            <div key={index} className="bg-gray-900/60 border border-gray-700 rounded-md p-3 space-y-2">
+                                                <h4 className="text-sm font-semibold text-cyan-300">
+                                                    {translatedSection?.heading || section.heading}
+                                                </h4>
+                                                {section.type === 'qa' ? (
+                                                    <ul className="space-y-2 text-sm text-gray-200">
+                                                        {(translatedSection?.items || section.items).map((item, itemIndex) => (
+                                                            <li key={itemIndex} className="border border-gray-700 rounded-md p-2 bg-gray-900/40">
+                                                                <p className="font-medium text-white">{(item as QAItem).question}</p>
+                                                                <p className="text-gray-300">{(item as QAItem).answer}</p>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                ) : (
+                                                    <ul className="space-y-1 text-sm text-gray-200 list-disc list-inside">
+                                                        {(translatedSection?.items || section.items).map((item, itemIndex) => (
+                                                            <li key={itemIndex}>{item as string}</li>
+                                                        ))}
+                                                    </ul>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <button
+                                    onClick={() => handleSelectCategory(key)}
+                                    className="mt-auto w-full py-2 px-4 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold rounded-md"
+                                >
+                                    Praticar esta categoria
+                                </button>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        </div>
+    )}
         </div >
     );
 };

@@ -76,7 +76,12 @@ export const Avatar = ({ text, onSpeakingComplete, onClick, isRecording = false,
                 }
 
                 // 2. Generate Lip-Sync Video
-                const videoBase64 = await generateLipSyncVideo(avatarImage, audioBlob, 'gan'); // Use GAN by default
+                // Strip data URL prefix if present (e.g., "data:image/png;base64,")
+                const cleanAvatarImage = avatarImage.includes(',')
+                    ? avatarImage.split(',')[1]
+                    : avatarImage;
+
+                const videoBase64 = await generateLipSyncVideo(cleanAvatarImage, audioBlob, 'gan'); // Use GAN by default
 
                 if (!videoBase64) {
                     console.warn('[Avatar] Wav2Lip failed, falling back to SVG');

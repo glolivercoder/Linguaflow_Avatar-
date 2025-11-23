@@ -40,4 +40,5 @@ export const DEFAULT_SETTINGS: Settings = {
   openRouterIncludeFree: true,
   openRouterIncludePaid: true,
   useWav2Lip: true,
+  avatarPhoto: undefined,
 };

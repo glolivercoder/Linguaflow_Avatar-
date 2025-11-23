@@ -37,6 +37,7 @@ export interface Settings {
   openRouterIncludePaid?: boolean;
   phoneticFormat?: PhoneticFormat;
   useWav2Lip?: boolean;
+  avatarPhoto?: string; // Base64 encoded photo for Wav2Lip
 }
 
 export type View = 'conversation' | 'flashcards' | 'settings' | 'anki' | 'smartLearn' | 'licoes';

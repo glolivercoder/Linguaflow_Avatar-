@@ -798,6 +798,88 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChange,
               </div>
             </label>
           </div>
+
+          {/* Avatar Photo Upload */}
+          <div className="space-y-3 pt-3 border-t border-gray-700">
+            <div>
+              <h4 className="text-sm font-medium text-gray-200">Foto do Avatar (para Wav2Lip)</h4>
+              <p className="text-xs text-gray-400 mt-1">
+                Faça upload de uma foto frontal do seu rosto para usar com Wav2Lip.
+                Formatos: JPG, PNG | Tamanho máx: 5MB
+              </p>
+            </div>
+
+            {settings.avatarPhoto ? (
+              <div className="flex items-center gap-4">
+                <img
+                  src={settings.avatarPhoto}
+                  alt="Avatar Preview"
+                  className="w-24 h-24 rounded-full object-cover border-2 border-purple-500"
+                />
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs text-green-400">✓ Foto carregada com sucesso</p>
+                  <button
+                    onClick={() => {
+                      onSettingsChange({
+                        ...settings,
+                        avatarPhoto: undefined,
+                      });
+                    }}
+                    className="px-3 py-1 text-xs bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
+                  >
+                    Remover Foto
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-gray-500">
+                  Nenhuma foto carregada. O Wav2Lip usará fallback SVG.
+                </p>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/jpg"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+
+                    // Validate file size (5MB max)
+                    if (file.size > 5 * 1024 * 1024) {
+                      alert('Arquivo muito grande! Tamanho máximo: 5MB');
+                      return;
+                    }
+
+                    // Validate file type
+                    if (!file.type.match(/^image\/(jpeg|png|jpg)$/)) {
+                      alert('Formato inválido! Use JPG ou PNG');
+                      return;
+                    }
+
+                    // Convert to base64
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      const base64 = reader.result as string;
+                      onSettingsChange({
+                        ...settings,
+                        avatarPhoto: base64,
+                      });
+                    };
+                    reader.onerror = () => {
+                      alert('Erro ao carregar arquivo');
+                    };
+                    reader.readAsDataURL(file);
+                  }}
+                  className="block w-full text-sm text-gray-400
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-purple-600 file:text-white
+                    hover:file:bg-purple-700
+                    file:cursor-pointer cursor-pointer"
+                />
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="mt-6 p-4 bg-gray-800 rounded-lg text-sm">

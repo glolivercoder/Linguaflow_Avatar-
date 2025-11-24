@@ -55,8 +55,20 @@ export const Avatar = ({ text, onSpeakingComplete, onClick, isRecording = false,
     useEffect(() => {
         if (!text || text.trim() === '') return;
 
+        console.log('[Avatar] Processing text:', {
+            text: text.substring(0, 50),
+            useWav2Lip,
+            isWav2LipReady,
+            hasAvatarImage: !!avatarImage
+        });
+
         const processWithWav2Lip = async () => {
             if (!useWav2Lip || !isWav2LipReady || !avatarImage) {
+                console.log('[Avatar] Falling back to SVG:', {
+                    useWav2Lip,
+                    isWav2LipReady,
+                    hasAvatarImage: !!avatarImage
+                });
                 processWithSVGMode();
                 return;
             }

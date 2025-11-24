@@ -96,23 +96,23 @@ timeout /t 3 /nobreak >nul
 REM ========================================
 REM 3.5. INICIAR WAV2LIP SERVICE
 REM ========================================
-echo [3.5/4] Iniciando Wav2Lip Service (Porta 8300)...
-echo [3.5/4] Iniciando Wav2Lip Service (Porta 8300)... >> "%LOG_FILE%"
-if exist backend\wav2lip_service (
-    cd backend\wav2lip_service
+echo [3.5/4] Iniciando Realtime Wav2Lip Service (Porta 8301)...
+echo [3.5/4] Iniciando Realtime Wav2Lip Service (Porta 8301)... >> "%LOG_FILE%"
+if exist backend\realtime_wav2lip_service (
+    cd backend\realtime_wav2lip_service
     if not exist venv (
-        echo [INFO] Criando ambiente virtual Wav2Lip...
-        echo [INFO] Criando ambiente virtual Wav2Lip... >> "%LOG_FILE%"
+        echo [INFO] Criando ambiente virtual Realtime Wav2Lip...
+        echo [INFO] Criando ambiente virtual Realtime Wav2Lip... >> "%LOG_FILE%"
         python -m venv venv
         call venv\Scripts\activate
         pip install -r requirements.txt
     )
     
-    start "LinguaFlow Avatar - Wav2Lip" cmd /k "venv\Scripts\activate && python main.py"
-    echo [OK] Wav2Lip Service iniciado >> "%LOG_FILE%"
+    start "LinguaFlow Avatar - Realtime Wav2Lip" cmd /k "venv\Scripts\activate && uvicorn main:app --host 0.0.0.0 --port 8301"
+    echo [OK] Realtime Wav2Lip Service iniciado >> "%LOG_FILE%"
     cd ..\..
 ) else (
-    echo [AVISO] Wav2Lip Service nao encontrado. >> "%LOG_FILE%"
+    echo [AVISO] Realtime Wav2Lip Service nao encontrado. >> "%LOG_FILE%"
 )
 timeout /t 3 /nobreak >nul
 

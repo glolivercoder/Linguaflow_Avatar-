@@ -4,8 +4,8 @@
  */
 
 const PROXY_URL = window.location.hostname === 'localhost'
-    ? 'http://localhost:3100'
-    : `${window.location.protocol}//${window.location.hostname}:3100`;
+    ? 'http://localhost:8301'
+    : `${window.location.protocol}//${window.location.hostname}:8301`;
 
 export interface Wav2LipGenerateRequest {
     avatar_image: string;  // base64 encoded image
@@ -34,7 +34,7 @@ export interface Wav2LipHealthResponse {
  */
 export async function checkWav2LipHealth(): Promise<Wav2LipHealthResponse | null> {
     try {
-        const response = await fetch(`${PROXY_URL}/wav2lip/health`);
+        const response = await fetch(`${PROXY_URL}/health`);
         if (!response.ok) {
             console.warn('[Wav2Lip] Health check failed:', response.status);
             return null;
@@ -64,18 +64,23 @@ export async function generateLipSyncVideo(
         // Convert audio blob to base64
         const audioBase64 = await blobToBase64(audioBlob);
 
-        const requestBody: Wav2LipGenerateRequest = {
-            avatar_image: avatarImage,
-            audio: audioBase64,
-            quality
-        };
+        // Remove data URL prefix from avatar if present
+        const cleanAvatar = avatarImage.includes(',')
+            ? avatarImage.split(',')[1]
+            : avatarImage;
 
-        const response = await fetch(`${PROXY_URL}/wav2lip/generate`, {
+        // Create form-urlencoded body
+        const body = new URLSearchParams();
+        body.append('avatar_image', cleanAvatar);
+        body.append('audio', audioBase64);
+        body.append('quality', quality);
+
+        const response = await fetch(`${PROXY_URL}/generate`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: JSON.stringify(requestBody),
+            body: body.toString(),
         });
 
         if (!response.ok) {

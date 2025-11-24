@@ -77,10 +77,13 @@ class ReferenceAudioGenerator:
             logger.info(f"Using voice model from environment: {env_model}")
             return env_model
 
+        # Get absolute path to models directory (relative to this file)
+        models_dir = Path(__file__).parent / "models"
+        
         # Search in local models directory
         candidates = [
-            Path("models/lessac_en_us/lessac_en_us.onnx"),
-            Path("models/en_US-lessac-medium.onnx"),
+            models_dir / "lessac_en_us" / "lessac_en_us.onnx",
+            models_dir / "en_US-lessac-medium.onnx",
         ]
 
         # Check if we can reference PipperTTS models
@@ -95,7 +98,7 @@ class ReferenceAudioGenerator:
         for candidate in candidates:
             if candidate.exists():
                 logger.info(f"Found voice model at: {candidate}")
-                return str(candidate)
+                return str(candidate.resolve())
 
         logger.warning("Voice model not found in expected locations")
         return str(candidates[0])

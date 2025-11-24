@@ -4,7 +4,7 @@
  */
 import fetch from 'cross-fetch';
 
-const WAV2LIP_URL = process.env.WAV2LIP_URL || 'http://localhost:8300';
+const WAV2LIP_URL = process.env.WAV2LIP_URL || 'http://localhost:8301';
 
 export const registerWav2LipRoutes = (app) => {
     /**

@@ -31,6 +31,7 @@ backend/anki_import/venv/
 *.pkl
 *.h5
 *.hdf5
+*.onnx
 
 # Build output
 dist/
@@ -90,3 +91,7 @@ anki_basic/*backup*/
 anki_basic/node_modules/
 anki_basic/package-lock.json
 anki_basic/build/
+backend/wav2lip_service/wav2lip.onnx
+
+# Pronunciation models
+pronunciation/models/

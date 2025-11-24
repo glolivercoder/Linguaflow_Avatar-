@@ -210,8 +210,10 @@ class ReferenceAudioGenerator:
 
             # Generate filename if not provided
             if output_filename is None:
+                # Remove newlines and carriage returns first (Windows compatibility)
+                clean_text = text.replace('\r', ' ').replace('\n', ' ')
                 # Use first 50 chars of text, sanitize for filename
-                safe_text = "".join(c if c.isalnum() or c.isspace() else "_" for c in text[:50])
+                safe_text = "".join(c if c.isalnum() or c.isspace() else "_" for c in clean_text[:50])
                 safe_text = safe_text.strip().replace(" ", "_")
                 output_filename = f"ref_{safe_text}"
             

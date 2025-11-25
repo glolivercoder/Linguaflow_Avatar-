@@ -178,6 +178,7 @@ async def generate(
         with tempfile.NamedTemporaryFile(suffix=".avi", delete=False) as temp_video:
             temp_video_path = temp_video.name
             
+        # OpenCV writes AVI, we'll convert to MP4 with ffmpeg later
         out = cv2.VideoWriter(
             temp_video_path,
             cv2.VideoWriter_fourcc(*'DIVX'), 
@@ -202,15 +203,18 @@ async def generate(
         
         # We should merge audio.
         # We need ffmpeg.
-        final_video_path = temp_video_path.replace(".avi", "_audio.avi")
+        final_video_path = temp_video_path.replace(".avi", "_final.mp4")
         
-        # Simple ffmpeg command
+        # Convert to MP4 with H.264 (browser-compatible) and merge audio
         subprocess_cmd = [
             "ffmpeg", "-y",
             "-i", temp_video_path,
             "-i", temp_audio_path,
-            "-c:v", "copy",
+            "-c:v", "libx264",  # H.264 codec for browser compatibility
+            "-preset", "ultrafast",  # Fast encoding
+            "-pix_fmt", "yuv420p",  # Compatible pixel format
             "-c:a", "aac",
+            "-b:a", "128k",  # Audio bitrate
             "-strict", "experimental",
             final_video_path
         ]

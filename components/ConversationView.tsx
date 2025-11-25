@@ -175,6 +175,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
     const sessionModeRef = useRef<'gemini' | 'vosk' | null>(null);
 
     const [isProcessingVosk, setIsProcessingVosk] = useState(false);
+    const [currentAudioBase64, setCurrentAudioBase64] = useState<string | null>(null);
 
     useEffect(() => {
         translatedByLangRef.current['pt-BR'] = cloneCategoryDefinitions(CATEGORY_DEFINITIONS);
@@ -564,11 +565,9 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
                 });
 
                 if (response.audio_base64) {
-                    const audioUrl = `data:audio/wav;base64,${response.audio_base64}`;
-                    const audio = new Audio(audioUrl);
-                    audio.play().catch((error) => {
-                        console.error('Erro ao reproduzir áudio da IA:', error);
-                    });
+                    setCurrentAudioBase64(response.audio_base64);
+                } else {
+                    setCurrentAudioBase64(null);
                 }
 
                 setStatus('Interação concluída com Vosk/OpenRouter.');
@@ -1117,6 +1116,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
                                 avatarImage={settings.avatarPhoto || avatarImageBase64}
                                 useWav2Lip={settings.useWav2Lip ?? true}
                                 isRecording={isSessionActive}
+                                audioBase64={currentAudioBase64}
                             />
                         </div>
 

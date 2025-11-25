@@ -9,9 +9,10 @@ interface AvatarProps {
     isRecording?: boolean;
     avatarImage?: string;  // Base64 image for Wav2Lip (optional)
     useWav2Lip?: boolean;  // Enable Wav2Lip video mode (default: false)
+    audioBase64?: string | null; // Audio from backend (optional)
 }
 
-export const Avatar = ({ text, onSpeakingComplete, onClick, isRecording = false, avatarImage, useWav2Lip = false }: AvatarProps) => {
+export const Avatar = ({ text, onSpeakingComplete, onClick, isRecording = false, avatarImage, useWav2Lip = false, audioBase64 }: AvatarProps) => {
     const svgRef = useRef<SVGSVGElement | null>(null);
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const [isSpeaking, setIsSpeaking] = useState(false);
@@ -89,7 +90,8 @@ export const Avatar = ({ text, onSpeakingComplete, onClick, isRecording = false,
             text: text.substring(0, 50),
             useWav2Lip,
             isWav2LipReady,
-            hasAvatarImage: !!avatarImage
+            hasAvatarImage: !!avatarImage,
+            hasAudioBase64: !!audioBase64
         });
 
         const processWithWav2Lip = async () => {
@@ -108,8 +110,29 @@ export const Avatar = ({ text, onSpeakingComplete, onClick, isRecording = false,
                 setError(null);
                 console.log('[Avatar] Generating Wav2Lip video...');
 
-                // 1. Generate Audio using Piper TTS (Pronunciation Service)
-                const audioBlob = await generateTTSAudio(text);
+                let audioBlob: Blob | null = null;
+
+                // 1. Get Audio (either from prop or generate TTS)
+                if (audioBase64) {
+                    console.log('[Avatar] Using provided audioBase64');
+                    try {
+                        // Convert base64 to Blob
+                        const byteCharacters = atob(audioBase64);
+                        const byteNumbers = new Array(byteCharacters.length);
+                        for (let i = 0; i < byteCharacters.length; i++) {
+                            byteNumbers[i] = byteCharacters.charCodeAt(i);
+                        }
+                        const byteArray = new Uint8Array(byteNumbers);
+                        audioBlob = new Blob([byteArray], { type: 'audio/wav' });
+                    } catch (e) {
+                        console.error('[Avatar] Error converting audioBase64 to Blob:', e);
+                    }
+                }
+
+                if (!audioBlob) {
+                    console.log('[Avatar] Generating TTS audio (Piper)...');
+                    audioBlob = await generateTTSAudio(text);
+                }
 
                 if (!audioBlob) {
                     console.warn('[Avatar] TTS failed, falling back to SVG');
@@ -192,7 +215,7 @@ export const Avatar = ({ text, onSpeakingComplete, onClick, isRecording = false,
                 URL.revokeObjectURL(videoUrl);
             }
         };
-    }, [text, onSpeakingComplete, useWav2Lip, isWav2LipReady, avatarImage]);
+    }, [text, onSpeakingComplete, useWav2Lip, isWav2LipReady, avatarImage, audioBase64]);
 
     return (
         <div

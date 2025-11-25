@@ -1,0 +1,73 @@
+// Helper function to convert base64 WAV to Blob safely (without fetch)
+function base64ToBlob(base64: string, contentType: string = 'audio/wav'): Blob {
+    const byteCharacters = atob(base64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: contentType });
+}
+
+// Add this function in ConversationView after processVoskConversation:
+
+const processWhisperConversation = useCallback(
+    async (chunks: Int16Array[]) => {
+        if (chunks.length === 0) {
+            setStatus('Nenhum áudio capturado para processar.');
+            return;
+        }
+
+        setIsProcessingVosk(true);
+        const languageLabel = settings.whisperLanguage === 'auto' ? 'Auto-Detect' : settings.whisperLanguage?.toUpperCase() || 'Auto';
+        setStatus(`Processando áudio offline (${languageLabel}) com Whisper/OpenRouter...`);
+
+        try {
+            const merged = mergeInt16Chunks(chunks);
+            if (merged.length === 0) {
+                setStatus('Áudio muito curto. Gravação descartada.');
+                return;
+            }
+
+            if (isAudioSilent(merged)) {
+                console.warn('[ConversationView] Áudio capturado está silencioso. Abortando envio ao Whisper.');
+                setStatus('Não foi possível detectar sua voz. Fale mais alto e tente novamente.');
+                return;
+            }
+
+           const audioBase64 = encodeInt16ToWavBase64(merged, inputAudioContextRef.current?.sampleRate ?? 16000);
+            // IMPORTANT: Use direct conversion to avoid CSP violations
+            const audioBlob = base64ToBlob(audioBase64);
+
+            const response = await transcribeWithWhisper(
+                audioBlob,
+                settings.whisperLanguage || 'auto'
+            );
+
+            console.log(`[Whisper] Detected language: ${response.language_detected}`);
+
+            setUserTranscript(response.transcription);
+            setModelTranscript(response.llm_response || '');
+            userTranscriptRef.current = response.transcription;
+            modelTranscriptRef.current = response.llm_response || '';
+            setLastTurn({
+                user: response.transcription,
+                model: response.llm_response || ''
+            });
+
+            if (response.audio_base64) {
+                setCurrentAudioBase64(response.audio_base64);
+            } else {
+                setCurrentAudioBase64(null);
+            }
+
+            setStatus(`Interação concluída com Whisper (${response.language_detected})/OpenRouter.`);
+        } catch (error) {
+            console.error('Erro ao processar interação Whisper/OpenRouter:', error);
+            setStatus('Erro ao processar áudio offline. Verifique os logs do serviço Whisper.');
+        } finally {
+            setIsProcessingVosk(false);
+        }
+    },
+    [buildSystemPrompt, settings.whisperLanguage]
+);

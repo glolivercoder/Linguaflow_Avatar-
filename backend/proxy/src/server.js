@@ -8,6 +8,7 @@ import { registerPixabayRoutes } from './routes/pixabay.js';
 import { registerOpenRouterRoutes } from './routes/openrouter.js';
 import { registerVoskRoutes } from './routes/vosk.js';
 import { registerWav2LipRoutes } from './routes/wav2lip.js';
+import { registerWhisperRoutes } from './routes/whisper.js';
 import { attachGeminiLiveProxy } from './ws/geminiLive.js';
 
 const app = express();
@@ -63,7 +64,7 @@ registerPixabayRoutes(app);
 registerOpenRouterRoutes(app);
 registerVoskRoutes(app);
 registerWav2LipRoutes(app);
-registerWav2LipRoutes(app);
+registerWhisperRoutes(app);
 
 const server = createServer(app);
 attachGeminiLiveProxy(server);

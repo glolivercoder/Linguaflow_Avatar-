@@ -13,7 +13,8 @@ echo ========================================
 echo   LINGUAFLOW AVATAR - INICIALIZACAO
 echo ========================================
 echo.
-echo [LOG] Arquivo de log: %LOG_FILE%
+echo [LOG] Arquivo de log principal: %LOG_FILE%
+echo [LOG] Logs de servicos ser enviadoao salvos nos terminais individuais.
 echo.
 
 set "SCRIPT_DIR=%~dp0"
@@ -22,8 +23,8 @@ cd /d "%SCRIPT_DIR%"
 REM ========================================
 REM 1. INICIAR PRONUNCIATION SERVICE
 REM ========================================
-echo [1/4] Iniciando Pronunciation Service (Porta 8000)...
-echo [1/4] Iniciando Pronunciation Service (Porta 8000)... >> "%LOG_FILE%"
+echo [1/6] Iniciando Pronunciation Service (Porta 8000)...
+echo [1/6] Iniciando Pronunciation Service (Porta 8000)... >> "%LOG_FILE%"
 cd backend\pronunciation
 if not exist venv (
     echo [INFO] Configurando ambiente do Piper TTS...
@@ -39,91 +40,104 @@ if exist venv (
     echo [ERRO] Falha ao criar venv do Pronunciation Service. >> "%LOG_FILE%"
 )
 cd ..\..
-timeout /t 5 /nobreak >nul
+timeout /t 2 /nobreak >nul
 
 REM ========================================
 REM 2. INICIAR PROXY SERVICE
 REM ========================================
-echo [2/4] Iniciando Proxy Service (Porta 3100)...
-echo [2/4] Iniciando Proxy Service (Porta 3100)... >> "%LOG_FILE%"
+echo [2/6] Iniciando Proxy Service (Porta 3100)...
+echo [2/6] Iniciando Proxy Service (Porta 3100)... >> "%LOG_FILE%"
 cd backend\proxy
 if not exist node_modules (
-    echo Instalando dependencias do proxy...
-    echo Instalando dependencias do proxy... >> "%LOG_FILE%"
+    echo [INFO] Instalando dependencias do Proxy...
+    echo [INFO] Instalando dependencias do Proxy... >> "%LOG_FILE%"
     call npm install
 )
 start "LinguaFlow Avatar - Proxy" cmd /k "npm start"
 echo [OK] Proxy Service iniciado >> "%LOG_FILE%"
 cd ..\..
-timeout /t 3 /nobreak >nul
+timeout /t 2 /nobreak >nul
 
 REM ========================================
-REM 3. INICIAR VOSK SERVICE (OPCIONAL)
+REM 3. INICIAR VOSK SERVICE
 REM ========================================
-echo [3/4] Iniciando Vosk Service (Porta 8200)...
-echo [3/4] Iniciando Vosk Service (Porta 8200)... >> "%LOG_FILE%"
-if exist backend\vosk_service (
-    cd backend\vosk_service
-    if not exist venv (
-        echo Criando ambiente virtual Python para Vosk...
-        echo Criando ambiente virtual Python para Vosk... >> "%LOG_FILE%"
-        python -m venv venv
-        call venv\Scripts\activate
-        pip install -r requirements.txt
-    ) else (
-        call venv\Scripts\activate
-    )
-    
-    REM Setup Vosk Model if missing
-    if not exist model (
-        echo [INFO] Verificando modelo Vosk...
-        echo [INFO] Verificando modelo Vosk... >> "%LOG_FILE%"
-        python ..\setup_vosk_model.py
-    )
-
-    cd ..
-    
-    echo [INFO] Iniciando Vosk Service... >> "%LOG_FILE%"
-    start "LinguaFlow Avatar - Vosk" cmd /k "cd /d "%SCRIPT_DIR%" && backend\vosk_service\venv\Scripts\python.exe start_vosk.py"
-    echo [OK] Vosk Service comando executado >> "%LOG_FILE%"
-    cd ..
-) else (
-    echo Vosk Service nao encontrado. Pulando...
-    echo [AVISO] Vosk Service nao encontrado. Pulando... >> "%LOG_FILE%"
+echo [3/6] Iniciando Vosk Service (Porta 8200)...
+echo [3/6] Iniciando Vosk Service (Porta 8200)... >> "%LOG_FILE%"
+cd backend\vosk_service
+if not exist venv (
+    echo [INFO] Configurando ambiente do Vosk...
+    echo [INFO] Configurando ambiente do Vosk... >> "%LOG_FILE%"
+    python -m venv venv
+    call venv\Scripts\activate
+    pip install -r requirements.txt
 )
-timeout /t 3 /nobreak >nul
-
-REM ========================================
-REM 3.5. INICIAR WAV2LIP SERVICE
-REM ========================================
-echo [3.5/4] Iniciando Realtime Wav2Lip Service (Porta 8301)...
-echo [3.5/4] Iniciando Realtime Wav2Lip Service (Porta 8301)... >> "%LOG_FILE%"
-if exist backend\realtime_wav2lip_service (
-    cd backend\realtime_wav2lip_service
-    if not exist venv (
-        echo [INFO] Criando ambiente virtual Realtime Wav2Lip...
-        echo [INFO] Criando ambiente virtual Realtime Wav2Lip... >> "%LOG_FILE%"
-        python -m venv venv
-        call venv\Scripts\activate
-        pip install -r requirements.txt
-    )
-    
-    start "LinguaFlow Avatar - Realtime Wav2Lip" cmd /k "venv\Scripts\activate && uvicorn main:app --host 0.0.0.0 --port 8301"
-    echo [OK] Realtime Wav2Lip Service iniciado >> "%LOG_FILE%"
-    cd ..\..
+if exist venv (
+    call venv\Scripts\activate
+    start "LinguaFlow Avatar - Vosk" cmd /k "call venv\Scripts\activate && python main.py"
+    echo [OK] Vosk Service iniciado >> "%LOG_FILE%"
 ) else (
-    echo [AVISO] Realtime Wav2Lip Service nao encontrado. >> "%LOG_FILE%"
+    echo [ERRO] Falha ao criar venv do Vosk Service.
+    echo [ERRO] Falha ao criar venv do Vosk Service. >> "%LOG_FILE%"
 )
-timeout /t 3 /nobreak >nul
+cd ..\..
+timeout /t 2 /nobreak >nul
 
 REM ========================================
-REM 4. INICIAR FRONTEND
+REM 4. INICIAR WHISPER SERVICE
 REM ========================================
-echo [4/4] Iniciando Frontend (Porta 3001)...
-echo [4/4] Iniciando Frontend (Porta 3001)... >> "%LOG_FILE%"
+echo [4/6] Iniciando Whisper Service (Porta 8003)...
+echo [4/6] Iniciando Whisper Service (Porta 8003)... >> "%LOG_FILE%"
+cd backend\whisper_service
+if not exist venv (
+    echo [INFO] Configurando ambiente do Whisper...
+    echo [INFO] Configurando ambiente do Whisper... >> "%LOG_FILE%"
+    python -m venv venv
+    call venv\Scripts\activate
+    pip install -r requirements.txt
+)
+if exist venv (
+    call venv\Scripts\activate
+    start "LinguaFlow Avatar - Whisper" cmd /k "call venv\Scripts\activate && python main.py"
+    echo [OK] Whisper Service iniciado >> "%LOG_FILE%"
+) else (
+    echo [ERRO] Falha ao criar venv do Whisper Service.
+    echo [ERRO] Falha ao criar venv do Whisper Service. >> "%LOG_FILE%"
+)
+cd ..\..
+timeout /t 2 /nobreak >nul
+
+REM ========================================
+REM 5. INICIAR WAV2LIP SERVICE
+REM ========================================
+echo [5/6] Iniciando Wav2Lip Service (Porta 8301)...
+echo [5/6] Iniciando Wav2Lip Service (Porta 8301)... >> "%LOG_FILE%"
+cd backend\wav2lip_service
+if not exist venv (
+    echo [INFO] Configurando ambiente do Wav2Lip...
+    echo [INFO] Configurando ambiente do Wav2Lip... >> "%LOG_FILE%"
+    python -m venv venv
+    call venv\Scripts\activate
+    pip install -r requirements.txt
+)
+if exist venv (
+    call venv\Scripts\activate
+    start "LinguaFlow Avatar - Wav2Lip" cmd /k "call venv\Scripts\activate && python main.py"
+    echo [OK] Wav2Lip Service iniciado >> "%LOG_FILE%"
+) else (
+    echo [ERRO] Falha ao criar venv do Wav2Lip Service.
+    echo [ERRO] Falha ao criar venv do Wav2Lip Service. >> "%LOG_FILE%"
+)
+cd ..\..
+timeout /t 2 /nobreak >nul
+
+REM ========================================
+REM 6. INICIAR FRONTEND
+REM ========================================
+echo [6/6] Iniciando Frontend (Porta 3001)...
+echo [6/6] Iniciando Frontend (Porta 3001)... >> "%LOG_FILE%"
 if not exist node_modules (
-    echo Instalando dependencias do frontend...
-    echo Instalando dependencias do frontend... >> "%LOG_FILE%"
+    echo [INFO] Instalando dependencias do Frontend...
+    echo [INFO] Instalando dependencias do Frontend... >> "%LOG_FILE%"
     call npm install
 )
 start "LinguaFlow Avatar - Frontend" cmd /k "npm run dev"
@@ -131,21 +145,14 @@ echo [OK] Frontend iniciado >> "%LOG_FILE%"
 
 echo.
 echo ========================================
-echo   LINGUAFLOW AVATAR INICIADO!
+echo   INICIALIZACAO CONCLUIDA
 echo ========================================
 echo.
-echo  Servidores ativos:
-echo    Pronunciation:  http://localhost:8000
-echo    Proxy:          http://localhost:3100
-echo    Vosk (opt):     http://localhost:8200
-echo    Wav2Lip:        http://localhost:8300
-echo    Frontend:       http://localhost:3001
+echo Todos os servicos foram iniciados.
+echo Verifique as janelas abertas se houver problemas.
+echo Abrindo navegador em 5 segundos...
+timeout /t 5 /nobreak >nul
+start http://localhost:3001
 echo.
-echo  Log disponivel em: %LOG_FILE%
-echo.
-echo ======================================== >> "%LOG_FILE%"
-echo INICIALIZACAO COMPLETA >> "%LOG_FILE%"
-echo ======================================== >> "%LOG_FILE%"
-
 echo Pressione qualquer tecla para sair...
 pause >nul

@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self' blob: http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://aistudiocdn.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'self' http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:* https://pixabay.com https://xgozq2lbwxa4loze4irwn52pse0wgbxm.lambda-url.us-east-1.on.aws wss:; img-src * data: blob:; media-src 'self' blob: data: http://localhost:* http://127.0.0.1:*; font-src 'self' data: https://fonts.gstatic.com; object-src 'self' blob: data: http://localhost:* http://127.0.0.1:*;" />
+    content="default-src 'self' 'unsafe-inline' 'unsafe-eval' blob: data: http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:* wss://localhost:* wss://127.0.0.1:* https://aistudiocdn.com https://unpkg.com https://fonts.googleapis.com https://fonts.gstatic.com https://pixabay.com https://xgozq2lbwxa4loze4irwn52pse0wgbxm.lambda-url.us-east-1.on.aws; img-src * data: blob:; media-src * data: blob:; font-src * data: blob:; connect-src * data: blob: ws: wss:;" />
   <!-- Fix for audio playback from backend -->
   <meta http-equiv="X-Content-Type-Options" content="nosniff" />
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />

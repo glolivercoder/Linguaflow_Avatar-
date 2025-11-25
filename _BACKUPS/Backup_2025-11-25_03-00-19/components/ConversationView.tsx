@@ -6,7 +6,6 @@ import { Avatar } from './Avatar';
 // FIX: Import the 'decode' function to handle audio data from the server.
 import { encode, decodeAudioData, decode } from '../services/geminiService';
 import { chatWithAudio, encodeInt16ToWavBase64, mergeInt16Chunks } from '../services/voskService';
-import { transcribeWithWhisper } from '../services/whisperService';
 import { Settings, Flashcard, LanguageCode } from '../types';
 import { SUPPORTED_LANGUAGES, VOICE_CONFIG } from '../constants';
 import * as Icons from './icons';
@@ -52,17 +51,6 @@ const isAudioSilent = (samples: Int16Array, threshold = 0.002): boolean => {
     const rms = Math.sqrt(sumSquares / samples.length);
     return rms < threshold;
 };
-
-// Helper function to convert base64 WAV to Blob safely (without fetch)
-function base64ToBlob(base64: string, contentType: string = 'audio/wav'): Blob {
-    const byteCharacters = atob(base64);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-    }
-    const byteArray = new Uint8Array(byteNumbers);
-    return new Blob([byteArray], { type: contentType });
-}
 
 const LANGUAGE_FLAG_MAP: Record<LanguageCode, string> = {
     'pt-BR': '🇧🇷',
@@ -593,65 +581,6 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
         [buildSystemPrompt, settings.openRouterModelId, selectedVoskLanguageOption, voskLanguage]
     );
 
-    const processWhisperConversation = useCallback(
-        async (chunks: Int16Array[]) => {
-            if (chunks.length === 0) {
-                setStatus('Nenhum áudio capturado para processar.');
-                return;
-            }
-
-            setIsProcessingVosk(true);
-            const languageLabel = settings.whisperLanguage === 'auto' ? 'Auto-Detect' : settings.whisperLanguage?.toUpperCase() || 'Auto';
-            setStatus(`Processando áudio offline (${languageLabel}) com Whisper/OpenRouter...`);
-
-            try {
-                const merged = mergeInt16Chunks(chunks);
-                if (merged.length === 0) {
-                    setStatus('Áudio muito curto. Gravação descartada.');
-                    return;
-                }
-
-                if (isAudioSilent(merged)) {
-                    console.warn('[ConversationView] Áudio capturado está silencioso. Abortando envio ao Whisper.');
-                    setStatus('Não foi possível detectar sua voz. Fale mais alto e tente novamente.');
-                    return;
-                }
-
-                const audioBase64 = encodeInt16ToWavBase64(merged, inputAudioContextRef.current?.sampleRate ?? 16000);
-
-                const response = await transcribeWithWhisper(
-                    audioBase64,
-                    settings.whisperLanguage || 'auto'
-                );
-
-                console.log(`[Whisper] Detected language: ${response.language_detected}`);
-
-                setUserTranscript(response.transcription);
-                setModelTranscript(response.llm_response || '');
-                userTranscriptRef.current = response.transcription;
-                modelTranscriptRef.current = response.llm_response || '';
-                setLastTurn({
-                    user: response.transcription,
-                    model: response.llm_response || ''
-                });
-
-                if (response.audio_base64) {
-                    setCurrentAudioBase64(response.audio_base64);
-                } else {
-                    setCurrentAudioBase64(null);
-                }
-
-                setStatus(`Interação concluída com Whisper (${response.language_detected})/OpenRouter.`);
-            } catch (error) {
-                console.error('Erro ao processar interação Whisper/OpenRouter:', error);
-                setStatus('Erro ao processar áudio offline. Verifique os logs do serviço Whisper.');
-            } finally {
-                setIsProcessingVosk(false);
-            }
-        },
-        [buildSystemPrompt, settings.whisperLanguage]
-    );
-
     const stopConversation = useCallback(() => {
         const currentMode = sessionModeRef.current;
         const capturedChunks = currentMode === 'vosk' ? [...audioChunksRef.current] : [];
@@ -693,28 +622,22 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
         setSessionMode(null);
 
         if (currentMode === 'vosk') {
-            if (settings.sttEngine === 'whisper') {
-                setStatus('Enviando áudio capturado para processamento offline com Whisper...');
-                void processWhisperConversation(capturedChunks);
-            } else {
-                setStatus('Enviando áudio capturado para processamento offline com Vosk...');
-                void processVoskConversation(capturedChunks);
-            }
+            setStatus('Enviando áudio capturado para processamento offline...');
+            void processVoskConversation(capturedChunks);
         } else {
             setStatus('Pronto para começar');
         }
-    }, [processVoskConversation, processWhisperConversation, settings.sttEngine]);
+    }, [processVoskConversation]);
 
     const startConversation = useCallback(async () => {
-        // Check if using offline STT (Vosk or Whisper)
-        const isOfflineSTT = settings.sttEngine === 'vosk' || settings.sttEngine === 'whisper' || settings.useVoskStt;
+        const shouldUseVosk = Boolean(settings.useVoskStt);
 
         if (isProcessingVosk) {
             setStatus('Aguarde o processamento offline terminar antes de iniciar uma nova conversa.');
             return;
         }
 
-        setStatus(isOfflineSTT ? 'Preparando captura offline...' : 'Iniciando...');
+        setStatus(shouldUseVosk ? 'Preparando captura offline...' : 'Iniciando...');
         if (isSessionActive) {
             stopConversation();
         }
@@ -726,7 +649,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
 
         try {
             inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-            outputAudioContextRef.current = isOfflineSTT
+            outputAudioContextRef.current = shouldUseVosk
                 ? null
                 : new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
 
@@ -739,7 +662,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
             setModelTranscript('');
             setLastTurn(null);
 
-            if (isOfflineSTT) {
+            if (shouldUseVosk) {
                 sessionModeRef.current = 'vosk';
                 setSessionMode('vosk');
 
@@ -757,14 +680,11 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
 
                 setIsSessionActive(true);
                 const scenarioTitle = activeTranslatedCategory?.title || activeCategoryDefinition?.title;
-                const sttEngine = settings.sttEngine || 'Vosk';
-                const languageLabel = settings.sttEngine === 'whisper'
-                    ? (settings.whisperLanguage === 'auto' ? 'Auto-Detect' : settings.whisperLanguage?.toUpperCase())
-                    : (selectedVoskLanguageOption?.label ?? voskLanguage);
+                const languageLabel = selectedVoskLanguageOption?.label ?? voskLanguage;
                 setStatus(
                     scenarioTitle
-                        ? `Gravando áudio offline (${sttEngine} - ${languageLabel}) no cenário "${scenarioTitle}". Pressione parar para processar.`
-                        : `Gravando áudio offline (${sttEngine} - ${languageLabel}). Pressione parar para processar.`
+                        ? `Gravando áudio offline (${languageLabel}) no cenário "${scenarioTitle}". Pressione parar para enviar ao Vosk/OpenRouter.`
+                        : `Gravando áudio offline (${languageLabel}). Pressione parar para enviar ao Vosk/OpenRouter.`
                 );
                 return;
             }
@@ -790,13 +710,13 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
                     type: 'setup',
                     payload: {
                         model: 'models/gemini-2.0-flash-exp',
-                        generationConfig: {
-                            responseModalities: 'audio'
+                        responseModalities: ['AUDIO'],
+                        inputAudioTranscription: {},
+                        outputAudioTranscription: {},
+                        systemInstruction: buildSystemPrompt(),
+                        speechConfig: {
+                            voiceConfig: { prebuiltVoiceConfig: { voiceName } },
                         },
-                        systemInstruction: {
-                            parts: [{ text: buildSystemPrompt() }]
-                        },
-                        tools: [],
                     },
                 };
                 ws.send(JSON.stringify(setupPayload));

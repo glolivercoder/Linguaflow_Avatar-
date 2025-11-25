@@ -78,7 +78,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChange,
   }, []);
 
   useEffect(() => {
-    if (!settings.useVoskStt) {
+    // Load OpenRouter models when using offline STT (Vosk or Whisper)
+    const isUsingOfflineSTT = settings.useVoskStt || settings.sttEngine === 'whisper' || settings.sttEngine === 'vosk';
+
+    if (!isUsingOfflineSTT) {
       setOpenRouterModels([]);
       setOpenRouterError(null);
       return;
@@ -502,38 +505,101 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChange,
           </div>
         </div>
 
-        <div className="space-y-4 p-4 bg-gray-800 rounded-lg">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-200">Voz de Conversa Offline (Vosk + OpenRouter)</h3>
-              <p className="text-xs text-gray-400 mt-1">
-                Ative para usar reconhecimento de fala offline com o modelo Vosk. A transcrição é enviada ao OpenRouter para gerar a resposta de IA e o áudio final é produzido via Piper TTS.
-              </p>
-            </div>
-            <label className="inline-flex items-center cursor-pointer">
-              <span className="mr-2 text-sm text-gray-300">Desativado</span>
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  checked={settings.useVoskStt ?? false}
-                  onChange={(event) => {
-                    onSettingsChange({
-                      ...settings,
-                      useVoskStt: event.target.checked,
-                    });
-                  }}
-                  className="sr-only"
-                />
-                <div className={`w-12 h-6 rounded-full transition-colors ${settings.useVoskStt ? 'bg-cyan-500' : 'bg-gray-600'}`}></div>
-                <div
-                  className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${settings.useVoskStt ? 'translate-x-6' : ''}`}
-                ></div>
-              </div>
-              <span className="ml-2 text-sm text-gray-300">Ativado</span>
-            </label>
+        <div className="space-y-4 p-4 bg-gray-800 rounded-lg border-l-4 border-cyan-500">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-200 flex items-center gap-2">
+              <span className="text-2xl">🎤</span>
+              Motor de Reconhecimento de Fala (STT)
+            </h3>
+            <p className="text-xs text-gray-400 mt-1">
+              Escolha entre Vosk (offline) ou Whisper (offline, mais preciso) para reconhecimento de voz.
+            </p>
           </div>
 
-          {settings.useVoskStt && (
+          {/* STT Engine Selector */}
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-gray-300">
+              Motor STT
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => onSettingsChange({ ...settings, sttEngine: 'vosk', useVoskStt: true })}
+                className={`p-3 rounded-lg border-2 transition-all ${(settings.sttEngine === 'vosk' || !settings.sttEngine)
+                  ? 'border-cyan-500 bg-cyan-900/30 text-cyan-100'
+                  : 'border-gray-600 bg-gray-700/50 text-gray-300 hover:border-cyan-600'
+                  }`}
+              >
+                <div className="text-sm font-semibold">Vosk</div>
+                <div className="text-xs text-gray-400 mt-1">Offline, rápido</div>
+              </button>
+              <button
+                onClick={() => onSettingsChange({ ...settings, sttEngine: 'whisper', useVoskStt: false })}
+                className={`p-3 rounded-lg border-2 transition-all ${settings.sttEngine === 'whisper'
+                  ? 'border-purple-500 bg-purple-900/30 text-purple-100'
+                  : 'border-gray-600 bg-gray-700/50 text-gray-300 hover:border-purple-600'
+                  }`}
+              >
+                <div className="text-sm font-semibold">Whisper</div>
+                <div className="text-xs text-gray-400 mt-1">Offline, mais preciso</div>
+              </button>
+            </div>
+          </div>
+
+          {/* Whisper Configuration */}
+          {settings.sttEngine === 'whisper' && (
+            <div className="space-y-4 border border-purple-700 rounded-lg p-4 bg-purple-900/10">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Modelo Whisper
+                </label>
+                <select
+                  value={settings.whisperModel || 'base'}
+                  onChange={(e) => onSettingsChange({ ...settings, whisperModel: e.target.value as 'base' | 'medium' })}
+                  className="w-full bg-gray-700 border-gray-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="base">Base (~150MB)</option>
+                  <option value="medium">Medium (~500MB, mais preciso)</option>
+                </select>
+                <p className="text-xs text-gray-400 mt-1">
+                  Modelos maiores são mais precisos mas requerem mais memória.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Idioma
+                </label>
+                <select
+                  value={settings.whisperLanguage || 'auto'}
+                  onChange={(e) => onSettingsChange({ ...settings, whisperLanguage: e.target.value as any })}
+                  className="w-full bg-gray-700 border-gray-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="auto">✨ Auto-Detect (Recomendado)</option>
+                  <option value="pt">🇵🇹 Português</option>
+                  <option value="en">🇺🇸 English</option>
+                  <option value="es">🇪🇸 Español</option>
+                  <option value="ru">🇷🇺 Русский</option>
+                  <option value="zh">🇨🇳 中文</option>
+                  <option value="ja">🇯🇵 日本語</option>
+                  <option value="fr">🇫🇷 Français</option>
+                  <option value="de">🇩🇪 Deutsch</option>
+                  <option value="it">🇮🇹 Italiano</option>
+                </select>
+                <p className="text-xs text-gray-400 mt-1">
+                  Auto-detect identifica automaticamente o idioma falado. Forçar um idioma pode melhorar a precisão se você sempre fala no mesmo idioma.
+                </p>
+              </div>
+
+              <div className="p-3 bg-purple-900/20 rounded border border-purple-700/50">
+                <p className="text-xs text-purple-200">
+                  <strong>💡 Dica:</strong> O mesmo modelo suporta todos os idiomas listados. Não é necessário baixar modelos separados!
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* OpenRouter Configuration (for Vosk and Whisper) */}
+          {(settings.sttEngine === 'vosk' || settings.sttEngine === 'whisper' || settings.useVoskStt) && (
             <div className="space-y-4 border border-gray-700 rounded-lg p-4 bg-gray-900/60">
               <div className="grid gap-3 md:grid-cols-3">
                 <div className="md:col-span-2">

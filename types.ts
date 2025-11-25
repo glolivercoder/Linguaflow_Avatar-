@@ -38,6 +38,9 @@ export interface Settings {
   phoneticFormat?: PhoneticFormat;
   useWav2Lip?: boolean;
   avatarPhoto?: string; // Base64 encoded photo for Wav2Lip
+  sttEngine?: 'vosk' | 'whisper'; // STT engine selection
+  whisperModel?: 'base' | 'medium'; // Whisper model size
+  whisperLanguage?: 'auto' | 'pt' | 'en' | 'es' | 'ru' | 'zh' | 'ja' | 'fr' | 'de' | 'it'; // Language for Whisper
 }
 
 export type View = 'conversation' | 'flashcards' | 'settings' | 'anki' | 'smartLearn' | 'licoes';

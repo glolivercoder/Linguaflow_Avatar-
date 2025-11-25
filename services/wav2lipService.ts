@@ -75,7 +75,7 @@ export async function generateLipSyncVideo(
         body.append('audio', audioBase64);
         body.append('quality', quality);
 
-        const response = await fetch(`${PROXY_URL}/generate`, {
+        const response = await fetch(`${PROXY_URL}/wav2lip/generate`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',

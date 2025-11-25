@@ -8,7 +8,8 @@ export const registerWhisperRoutes = (app) => {
         const {
             audioBase64,
             audio_base64,
-            language
+            language,
+            modelId
         } = req.body;
 
         const audioData = audioBase64 || audio_base64;
@@ -26,6 +27,7 @@ export const registerWhisperRoutes = (app) => {
                 body: JSON.stringify({
                     audio_base64: audioData,
                     language: language || 'auto',
+                    ...(modelId && { modelId })
                 }),
             });
 

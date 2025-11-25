@@ -621,7 +621,8 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
 
                 const response = await transcribeWithWhisper(
                     audioBase64,
-                    settings.whisperLanguage || 'auto'
+                    settings.whisperLanguage || 'auto',
+                    settings.openRouterModelId || undefined
                 );
 
                 console.log(`[Whisper] Detected language: ${response.language_detected}`);

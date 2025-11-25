@@ -75,6 +75,7 @@ from pydantic import BaseModel
 class AudioRequest(BaseModel):
     audio_base64: str
     language: str = "auto"
+    modelId: str = "meta-llama/llama-3.3-70b-instruct:free"  # Default free model
 
 @app.post("/whisper/chat/audio")
 async def chat_with_audio(request: AudioRequest):
@@ -135,8 +136,8 @@ async def chat_with_audio(request: AudioRequest):
                 "audio_base64": ""
             }
         
-        # Call OpenRouter LLM
-        llm_response = await call_openrouter_llm(transcription)
+        # Call OpenRouter LLM with user-selected model
+        llm_response = await call_openrouter_llm(transcription, request.modelId)
         
         # Generate TTS audio with Piper
         audio_base64 = await generate_piper_tts(llm_response)
@@ -154,13 +155,14 @@ async def chat_with_audio(request: AudioRequest):
         logger.error(f"Error processing audio: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-async def call_openrouter_llm(user_message: str) -> str:
+async def call_openrouter_llm(user_message: str, model_id: str = "meta-llama/llama-3.3-70b-instruct:free") -> str:
     """Call OpenRouter API for LLM response"""
     if not OPENROUTER_API_KEY:
         logger.warning("OpenRouter API key not configured")
         return "LLM not configured. Please set OPENROUTER_API_KEY."
     
     try:
+        logger.info(f"Calling OpenRouter with model: {model_id}")
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 "https://openrouter.ai/api/v1/chat/completions",
@@ -169,7 +171,7 @@ async def call_openrouter_llm(user_message: str) -> str:
                     "Content-Type": "application/json"
                 },
                 json={
-                    "model": "meta-llama/llama-3.1-8b-instruct:free",
+                    "model": model_id,
                     "messages": [
                         {
                             "role": "system",
@@ -199,7 +201,8 @@ async def generate_piper_tts(text: str) -> str:
     """Generate TTS audio using Piper and return base64 encoded WAV"""
     try:
         # Path to Piper executable
-        piper_path = Path(__file__).parent.parent / "pronunciation" / "piper" / "piper.exe"
+        # Updated to point to the correct location in pronunciation venv
+        piper_path = Path(__file__).parent.parent / "pronunciation" / "venv" / "Scripts" / "piper.exe"
         
         if not piper_path.exists():
             logger.error(f"Piper executable not found at {piper_path}")

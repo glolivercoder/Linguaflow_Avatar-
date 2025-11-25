@@ -15,7 +15,8 @@ export interface WhisperTranscriptionResponse {
  */
 export async function transcribeWithWhisper(
     audioBase64: string,
-    language: string = 'auto'
+    language: string = 'auto',
+    modelId?: string
 ): Promise<WhisperTranscriptionResponse> {
     const response = await fetch(`${PROXY_URL}/whisper/chat/audio`, {
         method: 'POST',
@@ -24,7 +25,8 @@ export async function transcribeWithWhisper(
         },
         body: JSON.stringify({
             audioBase64,
-            language
+            language,
+            ...(modelId && { modelId })
         })
     });
 

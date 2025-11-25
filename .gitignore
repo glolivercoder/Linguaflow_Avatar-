@@ -95,3 +95,5 @@ backend/wav2lip_service/wav2lip.onnx
 
 # Pronunciation models
 pronunciation/models/
+
+backend/whisper_service/models/

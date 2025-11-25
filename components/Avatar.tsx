@@ -33,6 +33,36 @@ export const Avatar = ({ text, onSpeakingComplete, onClick, isRecording = false,
         }
     }, [useWav2Lip]);
 
+    // Handle video playback when videoUrl is set (after React renders the video element)
+    useEffect(() => {
+        if (videoUrl && videoRef.current) {
+            console.log('[Avatar] Video element rendered, setting src and playing...');
+            videoRef.current.src = videoUrl;
+
+            videoRef.current.onended = () => {
+                console.log('[Avatar] Video ended');
+                setIsSpeaking(false);
+                onSpeakingComplete?.();
+                URL.revokeObjectURL(videoUrl);
+                setVideoUrl(null);
+            };
+
+            // Play video
+            const playPromise = videoRef.current.play();
+            if (playPromise !== undefined) {
+                playPromise
+                    .then(() => {
+                        console.log('[Avatar] Video playing successfully!');
+                    })
+                    .catch(error => {
+                        console.error('[Avatar] Video play error:', error);
+                        setIsSpeaking(false);
+                        onSpeakingComplete?.();
+                    });
+            }
+        }
+    }, [videoUrl, onSpeakingComplete]);
+
     // Function to simulate lip movement (SVG Fallback)
     const animateMouth = () => {
         if (svgRef.current) {
@@ -101,29 +131,12 @@ export const Avatar = ({ text, onSpeakingComplete, onClick, isRecording = false,
                     return;
                 }
 
-                // 3. Play Video
+                // 3. Set Video URL (React will render the video element)
                 const url = base64ToVideoUrl(videoBase64);
+                console.log('[Avatar] Video blob URL created:', url);
+                console.log('[Avatar] Video data length:', videoBase64.length, 'chars');
                 setVideoUrl(url);
-
-                if (videoRef.current) {
-                    videoRef.current.src = url;
-                    videoRef.current.onended = () => {
-                        setIsSpeaking(false);
-                        onSpeakingComplete?.();
-                        URL.revokeObjectURL(url);
-                        setVideoUrl(null);
-                    };
-
-                    // Handle play promise
-                    const playPromise = videoRef.current.play();
-                    if (playPromise !== undefined) {
-                        playPromise.catch(error => {
-                            console.error('[Avatar] Video play error:', error);
-                            setIsSpeaking(false);
-                            onSpeakingComplete?.();
-                        });
-                    }
-                }
+                console.log('[Avatar] Video URL state updated, waiting for render...');
             } catch (error) {
                 console.error('[Avatar] Wav2Lip error:', error);
                 setError('Wav2Lip failed');

@@ -74,7 +74,7 @@ async def health():
 @app.post("/wav2lip/generate")
 async def generate(
     avatar_image: str = Form(...),
-    audio: str = Form(...),
+    audio_param: str = Form(..., alias='audio'),
     quality: str = Form("base")
 ):
     if not compiled_model:
@@ -115,10 +115,11 @@ async def generate(
         face_seq = face_seq.astype(np.float32) / 255.0
         
         # 2. Process Audio (Base64)
-        if "base64," in audio:
-            audio = audio.split("base64,")[1]
+        audio_data = audio_param
+        if "base64," in audio_data:
+            audio_data = audio_data.split("base64,")[1]
             
-        audio_bytes = base64.b64decode(audio)
+        audio_bytes = base64.b64decode(audio_data)
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
             temp_audio.write(audio_bytes)
             temp_audio_path = temp_audio.name
@@ -224,7 +225,10 @@ async def generate(
         if os.path.exists(final_video_path):
             os.remove(final_video_path)
             
-        return {"video_base64": video_base64}
+        return {
+            "video": video_base64,
+            "duration_ms": int((len(result_frames) / fps) * 1000)
+        }
 
     except Exception as e:
         print(f"Error: {e}")

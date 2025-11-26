@@ -131,25 +131,25 @@ cd ..\..
 timeout /t 2 /nobreak >nul
 
 REM ========================================
-REM 6. INICIAR WAV2LIP SERVICE
+REM 6. INICIAR REALTIME WAV2LIP SERVICE
 REM ========================================
-echo [6/7] Iniciando Wav2Lip Service (Porta 8301)...
-echo [6/7] Iniciando Wav2Lip Service (Porta 8301)... >> "%LOG_FILE%"
-cd backend\wav2lip_service
+echo [6/7] Iniciando Realtime Wav2Lip Service (Porta 8301)...
+echo [6/7] Iniciando Realtime Wav2Lip Service (Porta 8301)... >> "%LOG_FILE%"
+cd backend\realtime_wav2lip_service
 if not exist venv (
-    echo [INFO] Configurando ambiente do Wav2Lip...
-    echo [INFO] Configurando ambiente do Wav2Lip... >> "%LOG_FILE%"
+    echo [INFO] Configurando ambiente do Realtime Wav2Lip...
+    echo [INFO] Configurando ambiente do Realtime Wav2Lip... >> "%LOG_FILE%"
     python -m venv venv
     call venv\Scripts\activate
     pip install -r requirements.txt
 )
 if exist venv (
     call venv\Scripts\activate
-    start "LinguaFlow Avatar - Wav2Lip" cmd /k "call venv\Scripts\activate && python main.py"
-    echo [OK] Wav2Lip Service iniciado >> "%LOG_FILE%"
+    start "LinguaFlow Avatar - Realtime Wav2Lip" cmd /k "call venv\Scripts\activate && python main.py"
+    echo [OK] Realtime Wav2Lip Service iniciado >> "%LOG_FILE%"
 ) else (
-    echo [ERRO] Falha ao criar venv do Wav2Lip Service.
-    echo [ERRO] Falha ao criar venv do Wav2Lip Service. >> "%LOG_FILE%"
+    echo [ERRO] Falha ao criar venv do Realtime Wav2Lip Service.
+    echo [ERRO] Falha ao criar venv do Realtime Wav2Lip Service. >> "%LOG_FILE%"
 )
 cd ..\..
 timeout /t 2 /nobreak >nul

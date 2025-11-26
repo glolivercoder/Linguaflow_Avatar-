@@ -1,6 +1,6 @@
 """
 FastAPI service for Wav2Lip lip-sync generation.
-Port: 8300
+Port: 8301
 """
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -86,8 +86,12 @@ async def generate_lipsync(
         
         output_path = TEMP_DIR / f"result_{Path(img_path).stem}.mp4"
         
-        # Select checkpoint
-        checkpoint = "wav2lip_gan.pth" if quality == "gan" else "wav2lip.pth"
+        # Select checkpoint - prefer GAN if available, fallback to base
+        if quality == "gan" or not (CHECKPOINTS_DIR / "wav2lip.pth").exists():
+            checkpoint = "wav2lip_gan.pth"
+        else:
+            checkpoint = "wav2lip.pth"
+        
         checkpoint_path = CHECKPOINTS_DIR / checkpoint
         
         if not checkpoint_path.exists():
@@ -149,4 +153,4 @@ async def generate_lipsync(
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8300)
+    uvicorn.run(app, host="0.0.0.0", port=8301)

@@ -97,3 +97,6 @@ backend/wav2lip_service/wav2lip.onnx
 pronunciation/models/
 
 backend/whisper_service/models/
+
+# Backups
+_BACKUPS/

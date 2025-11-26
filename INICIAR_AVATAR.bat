@@ -80,7 +80,7 @@ if not exist node_modules (
 start "LinguaFlow Avatar - Proxy" cmd /k "npm start"
 echo [OK] Proxy Service iniciado >> "%LOG_FILE%"
 cd ..\..
-timeout /t 2 /nobreak >nul
+timeout /t 5 /nobreak >nul
 
 REM ========================================
 REM 4. INICIAR VOSK SERVICE

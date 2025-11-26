@@ -43,10 +43,34 @@ cd ..\..
 timeout /t 2 /nobreak >nul
 
 REM ========================================
-REM 2. INICIAR PROXY SERVICE
+REM 2. INICIAR KITTEN-TTS SERVICE
 REM ========================================
-echo [2/6] Iniciando Proxy Service (Porta 3100)...
-echo [2/6] Iniciando Proxy Service (Porta 3100)... >> "%LOG_FILE%"
+echo [2/7] Iniciando Kitten-TTS Service (Porta 5000)...
+echo [2/7] Iniciando Kitten-TTS Service (Porta 5000)... >> "%LOG_FILE%"
+cd kitten_tts_service
+if not exist venv (
+    echo [INFO] Configurando ambiente do Kitten-TTS...
+    echo [INFO] Configurando ambiente do Kitten-TTS... >> "%LOG_FILE%"
+    python -m venv venv
+    call venv\Scripts\activate
+    pip install -r requirements.txt
+)
+if exist venv (
+    call venv\Scripts\activate
+    start "LinguaFlow Avatar - Kitten-TTS" cmd /k "call venv\Scripts\activate && python -m uvicorn server:app --host 0.0.0.0 --port 5000 --reload"
+    echo [OK] Kitten-TTS Service iniciado >> "%LOG_FILE%"
+) else (
+    echo [ERRO] Falha ao criar venv do Kitten-TTS Service.
+    echo [ERRO] Falha ao criar venv do Kitten-TTS Service. >> "%LOG_FILE%"
+)
+cd ..
+timeout /t 2 /nobreak >nul
+
+REM ========================================
+REM 3. INICIAR PROXY SERVICE
+REM ========================================
+echo [3/7] Iniciando Proxy Service (Porta 3100)...
+echo [3/7] Iniciando Proxy Service (Porta 3100)... >> "%LOG_FILE%"
 cd backend\proxy
 if not exist node_modules (
     echo [INFO] Instalando dependencias do Proxy...
@@ -59,10 +83,10 @@ cd ..\..
 timeout /t 2 /nobreak >nul
 
 REM ========================================
-REM 3. INICIAR VOSK SERVICE
+REM 4. INICIAR VOSK SERVICE
 REM ========================================
-echo [3/6] Iniciando Vosk Service (Porta 8200)...
-echo [3/6] Iniciando Vosk Service (Porta 8200)... >> "%LOG_FILE%"
+echo [4/7] Iniciando Vosk Service (Porta 8200)...
+echo [4/7] Iniciando Vosk Service (Porta 8200)... >> "%LOG_FILE%"
 cd backend\vosk_service
 if not exist venv (
     echo [INFO] Configurando ambiente do Vosk...
@@ -83,10 +107,10 @@ cd ..\..
 timeout /t 2 /nobreak >nul
 
 REM ========================================
-REM 4. INICIAR WHISPER SERVICE
+REM 5. INICIAR WHISPER SERVICE
 REM ========================================
-echo [4/6] Iniciando Whisper Service (Porta 8003)...
-echo [4/6] Iniciando Whisper Service (Porta 8003)... >> "%LOG_FILE%"
+echo [5/7] Iniciando Whisper Service (Porta 8003)...
+echo [5/7] Iniciando Whisper Service (Porta 8003)... >> "%LOG_FILE%"
 cd backend\whisper_service
 if not exist venv (
     echo [INFO] Configurando ambiente do Whisper...
@@ -107,10 +131,10 @@ cd ..\..
 timeout /t 2 /nobreak >nul
 
 REM ========================================
-REM 5. INICIAR WAV2LIP SERVICE
+REM 6. INICIAR WAV2LIP SERVICE
 REM ========================================
-echo [5/6] Iniciando Wav2Lip Service (Porta 8301)...
-echo [5/6] Iniciando Wav2Lip Service (Porta 8301)... >> "%LOG_FILE%"
+echo [6/7] Iniciando Wav2Lip Service (Porta 8301)...
+echo [6/7] Iniciando Wav2Lip Service (Porta 8301)... >> "%LOG_FILE%"
 cd backend\wav2lip_service
 if not exist venv (
     echo [INFO] Configurando ambiente do Wav2Lip...
@@ -131,10 +155,10 @@ cd ..\..
 timeout /t 2 /nobreak >nul
 
 REM ========================================
-REM 6. INICIAR FRONTEND
+REM 7. INICIAR FRONTEND
 REM ========================================
-echo [6/6] Iniciando Frontend (Porta 3001)...
-echo [6/6] Iniciando Frontend (Porta 3001)... >> "%LOG_FILE%"
+echo [7/7] Iniciando Frontend (Porta 3001)...
+echo [7/7] Iniciando Frontend (Porta 3001)... >> "%LOG_FILE%"
 if not exist node_modules (
     echo [INFO] Instalando dependencias do Frontend...
     echo [INFO] Instalando dependencias do Frontend... >> "%LOG_FILE%"

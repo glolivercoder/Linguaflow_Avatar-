@@ -1196,6 +1196,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
                                 text={lastTurn?.model || ''}
                                 avatarImage={settings.avatarPhoto || avatarImageBase64}
                                 useWav2Lip={settings.useWav2Lip ?? true}
+                                useKittenTTS={!(settings.usePiperTTS ?? false)}
                                 isRecording={isSessionActive}
                                 audioBase64={currentAudioBase64}
                             />

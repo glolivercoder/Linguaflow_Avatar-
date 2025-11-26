@@ -46,6 +46,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChange,
   const [isPreprocessing, setIsPreprocessing] = useState(false);
   const [preprocessStatus, setPreprocessStatus] = useState('');
   const [preprocessProgress, setPreprocessProgress] = useState(0);
+  const [isKittenSettingsOpen, setIsKittenSettingsOpen] = useState(false);
 
   const includeFree = settings.openRouterIncludeFree ?? true;
   const includePaid = settings.openRouterIncludePaid ?? true;
@@ -329,6 +330,88 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChange,
               </div>
               <span className="ml-2 text-sm text-gray-300">On</span>
             </label>
+          </div>
+        </div>
+
+        {/* Kitten-TTS Settings */}
+        <div className="p-4 bg-gray-800 rounded-lg space-y-3 border-l-4 border-cyan-500">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-200 flex items-center gap-2">
+              <span className="text-2xl">🎙️</span>
+              Motor de Síntese de Voz (TTS)
+            </h3>
+            <p className="mt-1 text-sm text-gray-400">
+              Escolha entre Kitten-TTS (leve e rápido) ou Piper TTS (tradicional).
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1">
+              <h4 className="text-sm font-medium text-gray-200">
+                {settings.usePiperTTS ? '🔊 Piper TTS' : '✨ Kitten-TTS (Padrão)'}
+              </h4>
+              <p className="text-xs text-gray-400">
+                {settings.usePiperTTS
+                  ? 'TTS tradicional, estável e confiável'
+                  : 'TTS moderno, leve e com vozes naturais'}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {/* Settings Button (only show for Kitten-TTS) */}
+              {!settings.usePiperTTS && (
+                <button
+                  onClick={() => setIsKittenSettingsOpen(true)}
+                  className="p-2 rounded-md bg-gray-700 hover:bg-gray-600 text-cyan-400 hover:text-cyan-300 transition-colors"
+                  title="Configurar Kitten-TTS"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </button>
+              )}
+
+              {/* Toggle Switch */}
+              <label className="inline-flex items-center cursor-pointer">
+                <span className="mr-2 text-sm text-gray-300">Kitten</span>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={settings.usePiperTTS ?? false}
+                    onChange={(event) => {
+                      onSettingsChange({
+                        ...settings,
+                        usePiperTTS: event.target.checked,
+                      });
+                    }}
+                    className="sr-only"
+                  />
+                  <div className={`w-12 h-6 rounded-full transition-colors ${settings.usePiperTTS ? 'bg-orange-500' : 'bg-cyan-500'}`}></div>
+                  <div
+                    className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${settings.usePiperTTS ? 'translate-x-6' : ''}`}
+                  ></div>
+                </div>
+                <span className="ml-2 text-sm text-gray-300">Piper</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Info Box */}
+          <div className={`p-3 rounded-md border ${settings.usePiperTTS ? 'bg-orange-900/20 border-orange-700/50' : 'bg-cyan-900/20 border-cyan-700/50'}`}>
+            <p className={`text-xs ${settings.usePiperTTS ? 'text-orange-200' : 'text-cyan-200'}`}>
+              {settings.usePiperTTS ? (
+                <>
+                  <strong>🔊 Piper TTS:</strong> Motor tradicional com vozes estáveis. Ideal para compatibilidade.
+                </>
+              ) : (
+                <>
+                  <strong>✨ Kitten-TTS:</strong> Motor moderno e leve com vozes mais naturais.
+                  Voz atual: <code className="bg-cyan-950/50 px-1 rounded">{settings.kittenVoice || 'expr-voice-5-m'}</code> •
+                  Velocidade: <code className="bg-cyan-950/50 px-1 rounded">{settings.kittenSpeed || 1.0}x</code>
+                </>
+              )}
+            </p>
           </div>
         </div>
 
@@ -1053,6 +1136,117 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChange,
           Voltar
         </button>
       </div>
+
+      {/* Kitten-TTS Settings Modal */}
+      {isKittenSettingsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-2xl bg-gray-900 border border-cyan-700 rounded-xl shadow-2xl p-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-semibold text-cyan-400 flex items-center gap-2">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Configurações do Kitten-TTS
+              </h2>
+              <button onClick={() => setIsKittenSettingsOpen(false)} className="text-gray-400 hover:text-gray-200">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Voice Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Modelo de Voz
+                </label>
+                <select
+                  value={settings.kittenVoice || 'expr-voice-5-m'}
+                  onChange={(e) => onSettingsChange({ ...settings, kittenVoice: e.target.value })}
+                  className="w-full bg-gray-700 border-gray-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                >
+                  <optgroup label="Vozes Expressivas">
+                    <option value="expr-voice-5-m">expr-voice-5-m (Masculina Expressiva)</option>
+                    <option value="expr-voice-5-f">expr-voice-5-f (Feminina Expressiva)</option>
+                    <option value="expr-voice-4-m">expr-voice-4-m (Masculina Expressiva 2)</option>
+                    <option value="expr-voice-4-f">expr-voice-4-f (Feminina Expressiva 2)</option>
+                  </optgroup>
+                  <optgroup label="Vozes Neutras">
+                    <option value="neutral-voice-3-m">neutral-voice-3-m (Masculina Neutra)</option>
+                    <option value="neutral-voice-3-f">neutral-voice-3-f (Feminina Neutra)</option>
+                  </optgroup>
+                </select>
+                <p className="text-xs text-gray-400 mt-1">
+                  Escolha a voz que será usada para gerar o áudio. Vozes expressivas são mais naturais.
+                </p>
+              </div>
+
+              {/* Speed Control */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Velocidade da Fala: {settings.kittenSpeed || 1.0}x
+                </label>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="2.0"
+                  step="0.1"
+                  value={settings.kittenSpeed || 1.0}
+                  onChange={(e) => onSettingsChange({ ...settings, kittenSpeed: parseFloat(e.target.value) })}
+                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                />
+                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                  <span>0.5x (Lento)</span>
+                  <span>1.0x (Normal)</span>
+                  <span>2.0x (Rápido)</span>
+                </div>
+                <p className="text-xs text-gray-400 mt-2">
+                  Ajuste a velocidade da fala. 1.0x é a velocidade normal.
+                </p>
+              </div>
+
+              {/* Server Link */}
+              <div className="p-4 bg-cyan-900/20 border border-cyan-700/50 rounded-md">
+                <p className="text-sm text-cyan-200 mb-2">
+                  <strong>🌐 Configurações Avançadas:</strong>
+                </p>
+                <p className="text-xs text-gray-300 mb-3">
+                  Para acessar todas as configurações do Kitten-TTS, incluindo vozes adicionais e ajustes avançados, abra o painel web do servidor:
+                </p>
+                <a
+                  href="http://localhost:5000"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md transition-colors text-sm font-medium"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  Abrir Painel do Kitten-TTS
+                </a>
+              </div>
+
+              {/* Info */}
+              <div className="p-3 bg-gray-800 rounded border border-gray-700">
+                <p className="text-xs text-gray-300">
+                  <strong>💡 Dica:</strong> As configurações são salvas automaticamente. Você pode testar diferentes vozes e velocidades para encontrar a combinação ideal.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setIsKittenSettingsOpen(false)}
+                className="px-6 py-2 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold rounded-md transition-colors"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

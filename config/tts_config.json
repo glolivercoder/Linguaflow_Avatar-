@@ -1,0 +1,27 @@
+{
+  "tts_provider": "kitten-tts",
+  "kitten_tts": {
+    "enabled": true,
+    "api_url": "http://localhost:5000",
+    "endpoint": "/tts",
+    "openai_compatible": false,
+    "default_voice": "expr-voice-5-m",
+    "default_speed": 1.0,
+    "output_format": "wav",
+    "timeout_ms": 30000
+  },
+  "piper": {
+    "enabled": true,
+    "executable_path": "./app/backend/pronunciation/venv/Scripts/piper.exe",
+    "model_path": "./app/backend/pronunciation/piper_models/pt_BR/portugal_tts-medium.onnx",
+    "config_path": "./app/backend/pronunciation/piper_models/pt_BR/portugal_tts-medium.onnx.json",
+    "sample_rate": 22050,
+    "timeout_ms": 30000
+  },
+  "audio": {
+    "target_sample_rate": 16000,
+    "channels": 1,
+    "format": "wav",
+    "codec": "pcm_s16le"
+  }
+}

@@ -133,6 +133,109 @@ export async function generateTTSAudio(text: string): Promise<Blob | null> {
     }
 }
 
+
+/**
+ * Generate audio using Kitten-TTS Server
+ * @param text - Text to convert to speech
+ * @param voice - Voice model to use (default: from settings or 'expr-voice-5-m')
+ * @param speed - Speech speed multiplier (default: from settings or 1.0)
+ * @returns Audio blob or null if failed
+ */
+export async function generateWithKittenTTS(
+    text: string,
+    voice?: string,
+    speed?: number
+): Promise<Blob | null> {
+    try {
+        // Get settings from localStorage
+        const settingsStr = localStorage.getItem('settings');
+        const settings = settingsStr ? JSON.parse(settingsStr) : {};
+
+        // Use provided values or fall back to settings or defaults
+        const finalVoice = voice || settings.kittenVoice || 'expr-voice-5-m';
+        const finalSpeed = speed || settings.kittenSpeed || 1.0;
+
+        console.log(`[Kitten-TTS] Generating audio for text: "${text.substring(0, 50)}..." (voice: ${finalVoice}, speed: ${finalSpeed})`);
+
+        // URL do servidor Kitten-TTS (porta 5000)
+        const KITTEN_TTS_URL = 'http://localhost:5000';
+
+        const response = await fetch(`${KITTEN_TTS_URL}/tts`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                text,
+                voice: finalVoice,
+                speed: finalSpeed,
+                output_format: 'wav',  // WAV para melhor compatibilidade com Wav2Lip
+                split_text: false
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`[Kitten-TTS] Request failed with status ${response.status}:`, errorText);
+            throw new Error(`TTS request failed with status ${response.status}`);
+        }
+
+        const audioBlob = await response.blob();
+        console.log(`[Kitten-TTS] Audio generated successfully (${audioBlob.size} bytes)`);
+        return audioBlob;
+    } catch (error) {
+        console.error('[Kitten-TTS] Error generating audio:', error);
+        return null;
+    }
+}
+
+/**
+ * Generate audio using Kitten-TTS Server (OpenAI-compatible endpoint)
+ * @param text - Text to convert to speech
+ * @param voice - Voice model to use (default: 'expr-voice-5-m')
+ * @param speed - Speech speed multiplier (default: 1.0, range: 0.8-1.2)
+ * @returns Audio blob or null if failed
+ */
+export async function generateWithKittenTTSOpenAI(
+    text: string,
+    voice: string = 'expr-voice-5-m',
+    speed: number = 1.0
+): Promise<Blob | null> {
+    try {
+        console.log(`[Kitten-TTS OpenAI] Generating audio for text: "${text.substring(0, 50)}..."`);
+
+        const KITTEN_TTS_URL = 'http://localhost:5000';
+
+        const response = await fetch(`${KITTEN_TTS_URL}/v1/audio/speech`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model: 'kitten-tts',
+                input: text,
+                voice,
+                speed,
+                response_format: 'wav'
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`[Kitten-TTS OpenAI] Request failed with status ${response.status}:`, errorText);
+            throw new Error(`TTS request failed with status ${response.status}`);
+        }
+
+        const audioBlob = await response.blob();
+        console.log(`[Kitten-TTS OpenAI] Audio generated successfully (${audioBlob.size} bytes)`);
+        return audioBlob;
+    } catch (error) {
+        console.error('[Kitten-TTS OpenAI] Error generating audio:', error);
+        return null;
+    }
+}
+
+
 /**
  * Convert Blob to base64 string
  */

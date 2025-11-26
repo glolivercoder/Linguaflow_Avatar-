@@ -41,6 +41,10 @@ export interface Settings {
   sttEngine?: 'vosk' | 'whisper'; // STT engine selection
   whisperModel?: 'base' | 'medium'; // Whisper model size
   whisperLanguage?: 'auto' | 'pt' | 'en' | 'es' | 'ru' | 'zh' | 'ja' | 'fr' | 'de' | 'it'; // Language for Whisper
+  // Kitten-TTS Settings
+  usePiperTTS?: boolean; // false = use Kitten-TTS (default), true = use Piper TTS
+  kittenVoice?: string; // Kitten-TTS voice model (default: 'expr-voice-5-m')
+  kittenSpeed?: number; // Kitten-TTS speech speed (default: 1.0, range: 0.5-2.0)
 }
 
 export type View = 'conversation' | 'flashcards' | 'settings' | 'anki' | 'smartLearn' | 'licoes';

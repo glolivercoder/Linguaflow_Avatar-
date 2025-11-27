@@ -10,6 +10,7 @@ import { transcribeWithWhisper } from '../services/whisperService';
 import { Settings, Flashcard, LanguageCode } from '../types';
 import { SUPPORTED_LANGUAGES, VOICE_CONFIG } from '../constants';
 import * as Icons from './icons';
+import TranslationPanel from './TranslationPanel';
 // getPhonetics removido para desabilitar transcrição fonética
 import { translateText, getPronunciationCorrection, getGroundedAnswer, getPhonetics } from '../services/geminiService';
 import { playAudio } from '../services/ttsService';
@@ -153,6 +154,13 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
     const [voskLanguage, setVoskLanguage] = useState<string>('pt-BR');
     const [autoPrepStatus, setAutoPrepStatus] = useState<string | null>(null);
     const [isMicTransientActive, setIsMicTransientActive] = useState(false);
+
+    // Translation field state
+    const [translationInput, setTranslationInput] = useState('');
+    const [translationTargetLang, setTranslationTargetLang] = useState<LanguageCode>('en-US');
+    const [translatedText, setTranslatedText] = useState('');
+    const [translationPhonetic, setTranslationPhonetic] = useState('');
+    const [isTranslating, setIsTranslating] = useState(false);
 
     useEffect(() => {
         if (isAutoPreprocessing && autoPreprocessStatus) {
@@ -966,6 +974,40 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
         setStatus('Flashcard adicionado!');
     };
 
+    // Translation field functions
+    const handleTranslate = useCallback(async () => {
+        if (!translationInput.trim()) return;
+
+        setIsTranslating(true);
+        try {
+            const sourceLangName = SUPPORTED_LANGUAGES.find(l => l.code === settings.learningLanguage)?.name || 'English (US)';
+            const targetLangName = SUPPORTED_LANGUAGES.find(l => l.code === translationTargetLang)?.name || 'English (US)';
+            const nativeLangName = SUPPORTED_LANGUAGES.find(l => l.code === settings.nativeLanguage)?.name || settings.nativeLanguage;
+
+            const translation = await translateText(translationInput, sourceLangName, targetLangName);
+            setTranslatedText(translation);
+
+            const phonetic = await getPhonetics(translation, targetLangName, nativeLangName);
+            setTranslationPhonetic(phonetic);
+        } catch (error) {
+            console.error('Translation error:', error);
+            setTranslatedText('Erro ao traduzir');
+        } finally {
+            setIsTranslating(false);
+        }
+    }, [translationInput, translationTargetLang, settings.learningLanguage, settings.nativeLanguage]);
+
+    const handlePlayTranslation = useCallback(() => {
+        if (!translatedText || !window.speechSynthesis) return;
+
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(translatedText);
+        utterance.lang = translationTargetLang;
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        window.speechSynthesis.speak(utterance);
+    }, [translatedText, translationTargetLang]);
+
     const handleSelectCategory = useCallback((categoryKey: CategoryKey) => {
         setSelectedCategoryKey(categoryKey);
         setIsCategoryModalOpen(false);
@@ -1294,6 +1336,17 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
                         )}
                     </div>
                     <div className="flex flex-col gap-4">
+                        <TranslationPanel
+                            translationInput={translationInput}
+                            setTranslationInput={setTranslationInput}
+                            translationTargetLang={translationTargetLang}
+                            setTranslationTargetLang={setTranslationTargetLang}
+                            translatedText={translatedText}
+                            translationPhonetic={translationPhonetic}
+                            isTranslating={isTranslating}
+                            handleTranslate={handleTranslate}
+                            handlePlayTranslation={handlePlayTranslation}
+                        />
                         <PronunciationPractice settings={settings} />
                         <GroundedSearch />
                     </div>

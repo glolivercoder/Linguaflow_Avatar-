@@ -997,16 +997,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
         }
     }, [translationInput, translationTargetLang, settings.learningLanguage, settings.nativeLanguage]);
 
-    const handlePlayTranslation = useCallback(() => {
-        if (!translatedText || !window.speechSynthesis) return;
 
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(translatedText);
-        utterance.lang = translationTargetLang;
-        utterance.rate = 1.0;
-        utterance.pitch = 1.0;
-        window.speechSynthesis.speak(utterance);
-    }, [translatedText, translationTargetLang]);
 
     const handleSelectCategory = useCallback((categoryKey: CategoryKey) => {
         setSelectedCategoryKey(categoryKey);
@@ -1345,7 +1336,6 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
                             translationPhonetic={translationPhonetic}
                             isTranslating={isTranslating}
                             handleTranslate={handleTranslate}
-                            handlePlayTranslation={handlePlayTranslation}
                         />
                         <PronunciationPractice settings={settings} />
                         <GroundedSearch />

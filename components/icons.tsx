@@ -9,9 +9,9 @@ export const MicIcon = ({ className }: { className?: string }) => (
 );
 
 export const StopIcon = ({ className }: { className?: string }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-        <path fillRule="evenodd" d="M4.5 7.5a3 3 0 013-3h9a3 3 0 013 3v9a3 3 0 01-3-3h-9a3 3 0 01-3-3v-9z" clipRule="evenodd" />
-    </svg>
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+    <path fillRule="evenodd" d="M4.5 7.5a3 3 0 013-3h9a3 3 0 013 3v9a3 3 0 01-3-3h-9a3 3 0 01-3-3v-9z" clipRule="evenodd" />
+  </svg>
 );
 
 export const SpeakerIcon = ({ className }: { className?: string }) => (
@@ -27,22 +27,22 @@ export const SettingsIcon = ({ className }: { className?: string }) => (
 );
 
 export const BookOpenIcon = ({ className }: { className?: string }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 2a1 1 0 011 1v18a1 1 0 01-2 0V3a1 1 0 011-1z" />
-        <path d="M10.707 2.293A.999.999 0 0010 3v18c0 .261.103.51.284.693l6 5.5a1 1 0 001.432-1.386L12 19.964V4.036l5.716-4.829a1 1 0 00-1.432-1.386l-6 5.5A.998.998 0 0010.707 2.293zM3.284 21.693A.999.999 0 004 21V3a.999.999 0 00-.293-.707l-6-5.5a1 1 0 00-1.432 1.386L2 4.036v15.928l-5.716 4.829a1 1 0 001.432 1.386l6-5.5z" />
-    </svg>
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 2a1 1 0 011 1v18a1 1 0 01-2 0V3a1 1 0 011-1z" />
+    <path d="M10.707 2.293A.999.999 0 0010 3v18c0 .261.103.51.284.693l6 5.5a1 1 0 001.432-1.386L12 19.964V4.036l5.716-4.829a1 1 0 00-1.432-1.386l-6 5.5A.998.998 0 0010.707 2.293zM3.284 21.693A.999.999 0 004 21V3a.999.999 0 00-.293-.707l-6-5.5a1 1 0 00-1.432 1.386L2 4.036v15.928l-5.716 4.829a1 1 0 001.432 1.386l6-5.5z" />
+  </svg>
 );
 
 export const ArrowPathIcon = ({ className }: { className?: string }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0011.664 0l3.181-3.183m-3.181-4.991v4.99" />
-    </svg>
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0011.664 0l3.181-3.183m-3.181-4.991v4.99" />
+  </svg>
 );
 
 export const PlusCircleIcon = ({ className }: { className?: string }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
 );
 
 export const XMarkIcon = ({ className }: { className?: string }) => (
@@ -77,9 +77,9 @@ export const ClockIcon = ({ className }: { className?: string }) => (
 );
 
 export const CubeIcon = ({ className }: { className?: string }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9.75l-9-5.25m9 5.25l9-5.25" />
-    </svg>
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9.75l-9-5.25m9 5.25l9-5.25" />
+  </svg>
 );
 
 export const PlayIcon = ({ className }: { className?: string }) => (

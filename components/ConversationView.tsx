@@ -13,7 +13,8 @@ import { SUPPORTED_LANGUAGES, VOICE_CONFIG } from '../constants';
 import * as Icons from './icons';
 import TranslationPanel from './TranslationPanel';
 // getPhonetics removido para desabilitar transcrição fonética
-import { translateText, getPronunciationCorrection, getGroundedAnswer, getPhonetics } from '../services/geminiService';
+import { translateText, getPronunciationCorrection, getGroundedAnswer, getPhonetics, generateTTS, chatWithGemini } from '../services/geminiService';
+import { generateSpeechWithFallback } from '../services/unifiedTtsWithFallback';
 import { playAudio } from '../services/ttsService';
 import { analyzePronunciation } from '../services/pronunciationService';
 import { PROXY_WS_URL } from '../services/proxyClient';
@@ -707,16 +708,31 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
                 setUserTranscript(transcription);
                 userTranscriptRef.current = transcription;
 
-                // For now, no LLM response - just transcription
-                setModelTranscript('');
-                modelTranscriptRef.current = '';
+                // Call Gemini LLM
+                setStatus('Gerando resposta com Gemini...');
+                const systemPrompt = buildSystemPrompt();
+                const llmResponse = await chatWithGemini(transcription, systemPrompt);
+
+                setModelTranscript(llmResponse);
+                modelTranscriptRef.current = llmResponse;
+
                 setLastTurn({
                     user: transcription,
-                    model: ''
+                    model: llmResponse
                 });
 
-                setCurrentAudioBase64(null);
-                setStatus(`Transcrição concluída com OpenRouter Whisper.`);
+                // Generate TTS with fallback logic (Kitten -> Piper -> Gemini)
+                setStatus('Gerando áudio (TTS)...');
+                const voiceGender = settings.voiceGender || 'female';
+                const ttsAudioBase64 = await generateSpeechWithFallback(llmResponse, settings.learningLanguage, voiceGender);
+
+                if (ttsAudioBase64) {
+                    setCurrentAudioBase64(ttsAudioBase64);
+                } else {
+                    setCurrentAudioBase64(null);
+                }
+
+                setStatus(`Transcrição (Voxtral) e Resposta (Gemini) concluídas.`);
             } catch (error) {
                 console.error('Erro ao processar interação OpenRouter Whisper:', error);
                 setStatus(`Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
@@ -784,8 +800,9 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
     }, [processVoskConversation, processWhisperConversation, processOpenRouterWhisperConversation, settings.sttEngine]);
 
     const startConversation = useCallback(async () => {
-        // Check if using offline STT (Vosk or Whisper)
-        const isOfflineSTT = (settings.sttEngine === 'vosk' || settings.sttEngine === 'whisper' || settings.useVoskStt) && settings.sttEngine !== 'openrouter-whisper';
+        // Check if using local audio capture (Vosk, Whisper, or OpenRouter Whisper)
+        // All three need to capture audio locally, even though OpenRouter sends to cloud
+        const isOfflineSTT = settings.sttEngine === 'vosk' || settings.sttEngine === 'whisper' || settings.sttEngine === 'openrouter-whisper' || settings.useVoskStt;
 
         if (isProcessingVosk) {
             setStatus('Aguarde o processamento offline terminar antes de iniciar uma nova conversa.');
@@ -835,14 +852,15 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
 
                 setIsSessionActive(true);
                 const scenarioTitle = activeTranslatedCategory?.title || activeCategoryDefinition?.title;
-                const sttEngine = settings.sttEngine || 'Vosk';
-                const languageLabel = settings.sttEngine === 'whisper'
+                const sttEngine = settings.sttEngine === 'openrouter-whisper' ? 'OpenRouter (Voxtral)' : (settings.sttEngine || 'Vosk');
+                const languageLabel = (settings.sttEngine === 'whisper' || settings.sttEngine === 'openrouter-whisper')
                     ? (settings.whisperLanguage === 'auto' ? 'Auto-Detect' : settings.whisperLanguage?.toUpperCase())
                     : (selectedVoskLanguageOption?.label ?? voskLanguage);
+                const processingMode = settings.sttEngine === 'openrouter-whisper' ? 'cloud' : 'offline';
                 setStatus(
                     scenarioTitle
-                        ? `Gravando áudio offline (${sttEngine} - ${languageLabel}) no cenário "${scenarioTitle}". Pressione parar para processar.`
-                        : `Gravando áudio offline (${sttEngine} - ${languageLabel}). Pressione parar para processar.`
+                        ? `Gravando áudio (${sttEngine} ${processingMode} - ${languageLabel}) no cenário "${scenarioTitle}". Pressione parar para processar.`
+                        : `Gravando áudio (${sttEngine} ${processingMode} - ${languageLabel}). Pressione parar para processar.`
                 );
                 return;
             }

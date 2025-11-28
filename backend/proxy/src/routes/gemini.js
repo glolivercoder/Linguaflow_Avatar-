@@ -168,4 +168,29 @@ export const registerGeminiRoutes = (app) => {
       handleError(res, error);
     }
   });
+
+  app.post('/gemini/chat', async (req, res) => {
+    const { message, systemPrompt } = req.body ?? {};
+    if (!message) {
+      return res.status(400).json({ error: 'Campo message é obrigatório.' });
+    }
+
+    try {
+      const contents = [];
+      if (systemPrompt) {
+        contents.push({ role: 'user', parts: [{ text: `System Instruction: ${systemPrompt}` }] });
+        contents.push({ role: 'model', parts: [{ text: 'Understood.' }] });
+      }
+      contents.push({ role: 'user', parts: [{ text: message }] });
+
+      const response = await genAI.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: contents,
+      });
+
+      res.json({ response: response.text?.trim() ?? '' });
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
 };

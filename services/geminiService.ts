@@ -201,3 +201,18 @@ export const getGroundedAnswer = async (query: string): Promise<{ text: string; 
     return { text: 'Desculpe, não consegui encontrar uma resposta.', sources: [] };
   }
 };
+
+type ChatResponse = { response: string };
+
+export const chatWithGemini = async (message: string, systemPrompt?: string): Promise<string> => {
+  try {
+    const { response } = await proxyPost<ChatResponse>('/gemini/chat', {
+      message,
+      systemPrompt,
+    });
+    return response ?? 'Desculpe, não consegui processar sua mensagem.';
+  } catch (error) {
+    console.error('Error chatting with Gemini via proxy:', error);
+    return 'Desculpe, ocorreu um erro ao comunicar com a IA.';
+  }
+};

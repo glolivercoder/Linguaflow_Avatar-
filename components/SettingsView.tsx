@@ -632,8 +632,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChange,
                   : 'border-gray-600 bg-gray-700/50 text-gray-300 hover:border-emerald-600'
                   }`}
               >
-                <div className="text-sm font-semibold">OpenRouter</div>
-                <div className="text-xs text-gray-400 mt-1">Cloud, premium</div>
+                <div className="text-sm font-semibold">OpenRouter (Voxtral)</div>
+                <div className="text-xs text-gray-400 mt-1">Cloud, rápido</div>
               </button>
             </div>
           </div>

@@ -3,8 +3,11 @@
  * Uses Whisper Large-V3 Turbo via OpenRouter API
  */
 
+const env = (import.meta as any).env as Record<string, string | undefined>;
+
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const WHISPER_MODEL_ID = 'openai/whisper-large-v3-turbo';
+// Using Voxtral (Mistral) as it is specifically designed for audio transcription
+const WHISPER_MODEL_ID = 'mistralai/voxtral-small-24b-2507';
 
 interface OpenRouterSTTResponse {
     choices: Array<{
@@ -43,9 +46,9 @@ export async function transcribeWithOpenRouterWhisper(
 ): Promise<string> {
     try {
         // Get API key from environment
-        const apiKey = (import.meta as any).env?.VITE_OPENROUTER_API_KEY;
+        const apiKey = env.VITE_OPENROUTER_API_KEY;
         if (!apiKey) {
-            throw new Error('OPENROUTER_API_KEY não encontrada no arquivo .env');
+            throw new Error('VITE_OPENROUTER_API_KEY não encontrada no arquivo .env');
         }
 
         // Convert audio to base64
@@ -56,20 +59,24 @@ export async function transcribeWithOpenRouterWhisper(
             model: WHISPER_MODEL_ID,
             messages: [
                 {
+                    role: 'system',
+                    content: 'You are a speech-to-text transcription service. Transcribe the user audio exactly as spoken. Do not translate, do not summarize, do not add commentary. Output ONLY the transcription.'
+                },
+                {
                     role: 'user',
                     content: [
                         {
                             type: 'input_audio',
                             input_audio: {
                                 data: base64Audio,
-                                format: 'wav' // or 'mp3', 'ogg', etc.
+                                format: 'wav'
                             }
                         },
                         {
                             type: 'text',
                             text: language === 'auto'
-                                ? 'Transcribe this audio.'
-                                : `Transcribe this audio in ${language}.`
+                                ? 'Transcribe this audio exactly.'
+                                : `Transcribe this audio exactly in ${language}.`
                         }
                     ]
                 }
@@ -118,6 +125,6 @@ export async function transcribeWithOpenRouterWhisper(
  * Check if OpenRouter is properly configured
  */
 export function isOpenRouterConfigured(): boolean {
-    const apiKey = (import.meta as any).env?.VITE_OPENROUTER_API_KEY;
+    const apiKey = env.VITE_OPENROUTER_API_KEY;
     return !!apiKey && apiKey.length > 0;
 }

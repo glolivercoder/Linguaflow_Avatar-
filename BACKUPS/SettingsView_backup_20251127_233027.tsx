@@ -604,7 +604,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChange,
             <label className="block text-sm font-medium text-gray-300">
               Motor STT
             </label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => onSettingsChange({ ...settings, sttEngine: 'vosk', useVoskStt: true })}
                 className={`p-3 rounded-lg border-2 transition-all ${(settings.sttEngine === 'vosk' || !settings.sttEngine)
@@ -623,17 +623,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChange,
                   }`}
               >
                 <div className="text-sm font-semibold">Whisper</div>
-                <div className="text-xs text-gray-400 mt-1">Offline, preciso</div>
-              </button>
-              <button
-                onClick={() => onSettingsChange({ ...settings, sttEngine: 'openrouter-whisper', useVoskStt: false })}
-                className={`p-3 rounded-lg border-2 transition-all ${settings.sttEngine === 'openrouter-whisper'
-                  ? 'border-emerald-500 bg-emerald-900/30 text-emerald-100'
-                  : 'border-gray-600 bg-gray-700/50 text-gray-300 hover:border-emerald-600'
-                  }`}
-              >
-                <div className="text-sm font-semibold">OpenRouter</div>
-                <div className="text-xs text-gray-400 mt-1">Cloud, premium</div>
+                <div className="text-xs text-gray-400 mt-1">Offline, mais preciso</div>
               </button>
             </div>
           </div>

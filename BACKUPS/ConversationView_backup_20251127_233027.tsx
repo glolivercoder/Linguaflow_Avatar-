@@ -7,7 +7,6 @@ import { Avatar } from './Avatar';
 import { encode, decodeAudioData, decode } from '../services/geminiService';
 import { chatWithAudio, encodeInt16ToWavBase64, mergeInt16Chunks } from '../services/voskService';
 import { transcribeWithWhisper } from '../services/whisperService';
-import { transcribeWithOpenRouterWhisper } from '../services/openRouterSTTService';
 import { Settings, Flashcard, LanguageCode } from '../types';
 import { SUPPORTED_LANGUAGES, VOICE_CONFIG } from '../constants';
 import * as Icons from './icons';
@@ -662,71 +661,6 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
         [buildSystemPrompt, settings.whisperLanguage]
     );
 
-    const processOpenRouterWhisperConversation = useCallback(
-        async (chunks: Int16Array[]) => {
-            if (chunks.length === 0) {
-                setStatus('Nenhum áudio capturado para processar.');
-                return;
-            }
-
-            setIsProcessingVosk(true);
-            const languageLabel = settings.whisperLanguage === 'auto' ? 'Auto-Detect' : settings.whisperLanguage?.toUpperCase() || 'Auto';
-            setStatus(`Processando áudio com OpenRouter Whisper Large-V3 Turbo (${languageLabel})...`);
-
-            try {
-                const merged = mergeInt16Chunks(chunks);
-                if (merged.length === 0) {
-                    setStatus('Áudio muito curto. Gravação descartada.');
-                    return;
-                }
-
-                if (isAudioSilent(merged)) {
-                    console.warn('[ConversationView] Áudio capturado está silencioso. Abortando envio.');
-                    setStatus('Não foi possível detectar sua voz. Fale mais alto e tente novamente.');
-                    return;
-                }
-
-                // Convert Int16Array to WAV Blob
-                const audioBase64 = encodeInt16ToWavBase64(merged, inputAudioContextRef.current?.sampleRate ?? 16000);
-                const byteCharacters = atob(audioBase64.split(',')[1] || audioBase64);
-                const byteNumbers = new Array(byteCharacters.length);
-                for (let i = 0; i < byteCharacters.length; i++) {
-                    byteNumbers[i] = byteCharacters.charCodeAt(i);
-                }
-                const byteArray = new Uint8Array(byteNumbers);
-                const audioBlob = new Blob([byteArray], { type: 'audio/wav' });
-
-                // Transcribe with OpenRouter
-                const transcription = await transcribeWithOpenRouterWhisper(
-                    audioBlob,
-                    settings.whisperLanguage || 'auto'
-                );
-
-                console.log(`[OpenRouter Whisper] Transcription: ${transcription}`);
-
-                setUserTranscript(transcription);
-                userTranscriptRef.current = transcription;
-
-                // For now, no LLM response - just transcription
-                setModelTranscript('');
-                modelTranscriptRef.current = '';
-                setLastTurn({
-                    user: transcription,
-                    model: ''
-                });
-
-                setCurrentAudioBase64(null);
-                setStatus(`Transcrição concluída com OpenRouter Whisper.`);
-            } catch (error) {
-                console.error('Erro ao processar interação OpenRouter Whisper:', error);
-                setStatus(`Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
-            } finally {
-                setIsProcessingVosk(false);
-            }
-        },
-        [settings.whisperLanguage]
-    );
-
     const stopConversation = useCallback(() => {
         const currentMode = sessionModeRef.current;
         const capturedChunks = currentMode === 'vosk' ? [...audioChunksRef.current] : [];
@@ -771,9 +705,6 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
             if (settings.sttEngine === 'whisper') {
                 setStatus('Enviando áudio capturado para processamento offline com Whisper...');
                 void processWhisperConversation(capturedChunks);
-            } else if (settings.sttEngine === 'openrouter-whisper') {
-                setStatus('Enviando áudio para OpenRouter Whisper Large-V3 Turbo...');
-                void processOpenRouterWhisperConversation(capturedChunks);
             } else {
                 setStatus('Enviando áudio capturado para processamento offline com Vosk...');
                 void processVoskConversation(capturedChunks);
@@ -781,11 +712,11 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
         } else {
             setStatus('Pronto para começar');
         }
-    }, [processVoskConversation, processWhisperConversation, processOpenRouterWhisperConversation, settings.sttEngine]);
+    }, [processVoskConversation, processWhisperConversation, settings.sttEngine]);
 
     const startConversation = useCallback(async () => {
         // Check if using offline STT (Vosk or Whisper)
-        const isOfflineSTT = (settings.sttEngine === 'vosk' || settings.sttEngine === 'whisper' || settings.useVoskStt) && settings.sttEngine !== 'openrouter-whisper';
+        const isOfflineSTT = settings.sttEngine === 'vosk' || settings.sttEngine === 'whisper' || settings.useVoskStt;
 
         if (isProcessingVosk) {
             setStatus('Aguarde o processamento offline terminar antes de iniciar uma nova conversa.');

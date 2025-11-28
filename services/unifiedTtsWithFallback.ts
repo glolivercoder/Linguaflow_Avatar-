@@ -26,18 +26,16 @@ export async function generateSpeechWithFallback(
             console.log('[UnifiedTTS] Using Kitten TTS');
             return kittenResult;
         }
-        console.warn('[UnifiedTTS] Kitten TTS failed, trying fallbacks...');
+        console.warn('[UnifiedTTS] Kitten TTS failed, trying Piper...');
     }
 
-    // 2. Try Piper for other languages
-    if (language !== 'en-US') {
-        const piperResult = await tryPiperTTS(text, language);
-        if (piperResult) {
-            console.log('[UnifiedTTS] Using Piper TTS');
-            return piperResult;
-        }
-        console.warn('[UnifiedTTS] Piper TTS failed, trying Gemini...');
+    // 2. Try Piper (for all languages, including English fallback)
+    const piperResult = await tryPiperTTS(text, language);
+    if (piperResult) {
+        console.log('[UnifiedTTS] Using Piper TTS');
+        return piperResult;
     }
+    console.warn('[UnifiedTTS] Piper TTS failed, trying Gemini...');
 
     // 3. Fallback to Gemini
     console.log('[UnifiedTTS] Using Gemini TTS as fallback');
@@ -67,6 +65,10 @@ async function tryKittenTTS(text: string, voiceGender: VoiceGender): Promise<str
         }
 
         const audioBlob = await response.blob();
+        if (audioBlob.size < 100) {
+            console.error(`[KittenTTS] Audio blob too small: ${audioBlob.size} bytes`);
+            return null;
+        }
         const arrayBuffer = await audioBlob.arrayBuffer();
         const base64 = btoa(
             new Uint8Array(arrayBuffer).reduce(
@@ -86,6 +88,7 @@ async function tryPiperTTS(text: string, language: LanguageCode): Promise<string
     try {
         // Map language codes to Piper models
         const languageMap: Record<string, string> = {
+            'en-US': 'en_US',
             'pt-BR': 'pt_BR',
             'es-ES': 'es_ES',
             'fr-FR': 'fr_FR',

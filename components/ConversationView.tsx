@@ -16,7 +16,8 @@ import TranslationPanel from './TranslationPanel';
 import { translateText, getPronunciationCorrection, getGroundedAnswer, getPhonetics, generateTTS, chatWithGemini } from '../services/geminiService';
 import { generateSpeechWithFallback } from '../services/unifiedTtsWithFallback';
 import { playAudio } from '../services/ttsService';
-import { analyzePronunciation } from '../services/pronunciationService';
+import { analyzePronunciation, scorePronunciationMFCC, generateReferenceAudioUnified, type MFCCScoreResult } from '../services/pronunciationService';
+import PronunciationScoreDisplay from './PronunciationScoreDisplay';
 import { PROXY_WS_URL } from '../services/proxyClient';
 import {
     CATEGORY_DEFINITIONS,
@@ -186,6 +187,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
     const nextStartTimeRef = useRef(0);
     const audioSourcesRef = useRef(new Set<AudioBufferSourceNode>());
     const translationCacheRef = useRef<Record<string, string>>({});
+    const referenceAudioCacheRef = useRef<Record<string, string>>({});
     const phoneticsCacheRef = useRef<Record<string, string>>({});
     const qaCompletedRef = useRef<Record<string, boolean>>({});
     const [qaCompleted, setQaCompleted] = useState<Record<string, boolean>>({});
@@ -198,6 +200,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
 
     const [isProcessingVosk, setIsProcessingVosk] = useState(false);
     const [currentAudioBase64, setCurrentAudioBase64] = useState<string | null>(null);
+    const [qaScores, setQaScores] = useState<Record<string, MFCCScoreResult>>({});
 
     useEffect(() => {
         translatedByLangRef.current['pt-BR'] = cloneCategoryDefinitions(CATEGORY_DEFINITIONS);
@@ -1230,45 +1233,86 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
                                                     const key = `${selectedCategoryKey || 'none'}:${index}:${itemIndex}`;
                                                     const playAndPractice = async () => {
                                                         try {
-                                                            await playAudio(enQ, 'en-US', settings.voiceGender);
+                                                            // 1. Play Question (Audible)
+                                                            setStatus('Ouvindo pergunta...');
+                                                            const qAudioBase64 = await generateSpeechWithFallback(enQ, 'en-US', settings.voiceGender);
+                                                            if (qAudioBase64) {
+                                                                const audioBlob = base64ToBlob(qAudioBase64, 'audio/wav');
+                                                                const audioUrl = URL.createObjectURL(audioBlob);
+                                                                const audio = new Audio(audioUrl);
+                                                                await new Promise((resolve, reject) => {
+                                                                    audio.onended = resolve;
+                                                                    audio.onerror = (e) => {
+                                                                        console.error('Audio playback error:', audio.error);
+                                                                        reject(new Error(`Audio playback failed: ${audio.error?.code}`));
+                                                                    };
+                                                                    audio.play().catch(err => {
+                                                                        console.error('Play failed:', err);
+                                                                        reject(err);
+                                                                    });
+                                                                });
+                                                            }
+
+                                                            // 2. Generate Answer Reference (Silent & Cached)
+                                                            setStatus('Preparando avaliação...');
+                                                            let audioPath = referenceAudioCacheRef.current[enA];
+                                                            if (!audioPath) {
+                                                                const result = await generateReferenceAudioUnified(enA, 'en-US');
+                                                                audioPath = result.audioPath;
+                                                                referenceAudioCacheRef.current[enA] = audioPath;
+                                                            }
+
+                                                            // 3. Record User
+                                                            setStatus('Gravando sua resposta...');
                                                             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                                                            const inputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-                                                            const source = inputCtx.createMediaStreamSource(stream);
-                                                            const processor = inputCtx.createScriptProcessor(4096, 1, 1);
-                                                            const chunks: Int16Array[] = [];
-                                                            processor.onaudioprocess = (event) => {
-                                                                const inputData = event.inputBuffer.getChannelData(0);
-                                                                const int16 = new Int16Array(inputData.length);
-                                                                for (let i = 0; i < inputData.length; i++) int16[i] = Math.max(-32768, Math.min(32767, inputData[i] * 32768));
-                                                                chunks.push(int16);
-                                                            };
-                                                            source.connect(processor);
-                                                            processor.connect(inputCtx.destination);
-                                                            await new Promise((r) => setTimeout(r, 10000));
-                                                            try { processor.disconnect(); } catch { }
-                                                            try { source.disconnect(); } catch { }
+                                                            const mediaRecorder = new MediaRecorder(stream);
+                                                            const chunks: Blob[] = [];
+
+                                                            mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+                                                            mediaRecorder.start();
+
+                                                            await new Promise(r => setTimeout(r, 3000));
+
+                                                            mediaRecorder.stop();
+                                                            await new Promise(r => mediaRecorder.onstop = r);
+
                                                             stream.getTracks().forEach(t => t.stop());
-                                                            const merged = mergeInt16Chunks(chunks);
-                                                            const base64 = encodeInt16ToWavBase64(merged, inputCtx.sampleRate || 16000);
-                                                            const binary = atob(base64);
-                                                            const buf = new Uint8Array(binary.length);
-                                                            for (let i = 0; i < binary.length; i++) buf[i] = binary.charCodeAt(i);
-                                                            const blob = new Blob([buf], { type: 'audio/wav' });
-                                                            const result = await analyzePronunciation(blob, enA);
-                                                            const ok = (result.text_accuracy || 0) >= 70 && (result.overall_score || 0) >= 60;
-                                                            qaCompletedRef.current[key] = ok;
-                                                            setQaCompleted({ ...qaCompletedRef.current });
-                                                            if (ok) {
+                                                            const userBlob = new Blob(chunks, { type: 'audio/wav' });
+
+                                                            // 4. Score
+                                                            setStatus('Avaliando pronúncia...');
+                                                            const result = await scorePronunciationMFCC(userBlob, audioPath);
+
+                                                            setQaScores(prev => ({ ...prev, [key]: result }));
+
+                                                            if (result.overall_score >= 70) {
+                                                                qaCompletedRef.current[key] = true;
+                                                                setQaCompleted({ ...qaCompletedRef.current });
+
                                                                 const nextKey = `${selectedCategoryKey || 'none'}:${index}:${itemIndex + 1}`;
                                                                 const el = qaItemRefs.current[nextKey];
                                                                 if (el) {
                                                                     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                                                 }
                                                             }
+
+                                                            setStatus('');
                                                         } catch (e) {
                                                             console.error('Falha ao praticar item:', e);
+                                                            setStatus('Erro na prática');
                                                         }
                                                     };
+
+                                                    const playAnswer = async () => {
+                                                        try {
+                                                            setStatus('Reproduzindo resposta...');
+                                                            await playAudio(enA, 'en-US', settings.voiceGender);
+                                                            setStatus('');
+                                                        } catch (e) {
+                                                            console.error('Erro ao tocar resposta:', e);
+                                                        }
+                                                    };
+
                                                     return (
                                                         <li key={itemIndex} ref={el => { qaItemRefs.current[key] = el; }} className="relative border border-gray-700 rounded-md p-2 bg-gray-900/40">
                                                             <div className="flex items-center justify-between">
@@ -1279,12 +1323,30 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
                                                             </div>
                                                             <p className="text-emerald-300 italic">{phQ}</p>
                                                             <p className="text-gray-400">{ptQ}</p>
-                                                            <div className="mt-2">
-                                                                <p className="text-white">{enA}</p>
+
+                                                            <div className="mt-2 border-t border-gray-800 pt-2">
+                                                                <div className="flex items-center justify-between">
+                                                                    <p className="text-white">{enA}</p>
+                                                                    <button onClick={playAnswer} className="text-gray-400 hover:text-cyan-300" title="Ouvir resposta">
+                                                                        <Icons.SpeakerIcon className="w-4 h-4" />
+                                                                    </button>
+                                                                </div>
                                                                 <p className="text-emerald-300 italic">{phA}</p>
                                                                 <p className="text-gray-400">{ptA}</p>
                                                             </div>
-                                                            {qaCompleted[key] && (
+
+                                                            {qaScores[key] && (
+                                                                <div className="mt-2">
+                                                                    <PronunciationScoreDisplay
+                                                                        score={qaScores[key].overall_score}
+                                                                        qualityLabel={qaScores[key].quality_label}
+                                                                        feedback={qaScores[key].detailed_feedback}
+                                                                        showDetails={true}
+                                                                    />
+                                                                </div>
+                                                            )}
+
+                                                            {qaCompleted[key] && !qaScores[key] && (
                                                                 <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 text-emerald-300">
                                                                     <Icons.CheckCircleIcon className="w-4 h-4" />
                                                                 </span>

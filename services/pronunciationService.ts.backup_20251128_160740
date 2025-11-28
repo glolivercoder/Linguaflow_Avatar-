@@ -37,7 +37,7 @@ export async function analyzePronunciation(
   const formData = new FormData();
   formData.append('audio', audioBlob, 'recording.wav');
   formData.append('expected_text', expectedText);
-
+  
   if (referenceAudioPath) {
     formData.append('reference_audio_path', referenceAudioPath);
   }
@@ -196,7 +196,7 @@ export class AudioRecorder {
 
       this.mediaRecorder.onstop = () => {
         const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
-
+        
         // Stop all tracks
         if (this.stream) {
           this.stream.getTracks().forEach(track => track.stop());
@@ -224,101 +224,4 @@ export class AudioRecorder {
 
     this.audioChunks = [];
   }
-}
-
-/**
- * NEW: Score pronunciation using MFCC + FastDTW (NO AI/Cloud)
- */
-export interface MFCCScoreResult {
-  overall_score: number;
-  dtw_distance: number;
-  quality_label: 'excellent' | 'good' | 'needs_improvement';
-  detailed_feedback: string;
-  pronunciation_accuracy: number;
-  mfcc_shape_user: number[];
-  mfcc_shape_reference: number[];
-}
-
-export async function scorePronunciationMFCC(
-  audioBlob: Blob,
-  referenceAudioPath: string
-): Promise<MFCCScoreResult> {
-  const formData = new FormData();
-  formData.append('audio', audioBlob, 'recording.wav');
-  formData.append('reference_audio_path', referenceAudioPath);
-
-  const response = await fetch(`${API_BASE_URL}/api/score-pronunciation`, {
-    method: 'POST',
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'MFCC scoring failed');
-  }
-
-  return response.json();
-}
-
-/**
- * Generate reference audio using unified TTS (Kitten/Piper/Gemini)
- * and save to backend references directory
- */
-export async function generateReferenceAudioUnified(
-  text: string,
-  language: string = 'en-US'
-): Promise<{ audioPath: string; audioUrl: string }> {
-  // Import the unified TTS function
-  const { generateSpeechWithFallback } = await import('./unifiedTtsWithFallback');
-
-  // Generate audio using unified TTS
-  const audioBase64 = await generateSpeechWithFallback(
-    text,
-    language as any,
-    'female'
-  );
-
-  if (!audioBase64) {
-    throw new Error('TTS generation failed');
-  }
-
-  // Convert base64 to blob
-  const byteCharacters = atob(audioBase64);
-  const byteNumbers = new Array(byteCharacters.length);
-  for (let i = 0; i < byteCharacters.length; i++) {
-    byteNumbers[i] = byteCharacters.charCodeAt(i);
-  }
-  const byteArray = new Uint8Array(byteNumbers);
-  const audioBlob = new Blob([byteArray], { type: 'audio/wav' });
-  console.log(`[PronunciationService] Generated reference audio blob size: ${audioBlob.size} bytes`);
-
-  // Generate unique filename
-  const timestamp = Date.now();
-  const filename = `ref_${timestamp}.wav`;
-
-  // Upload to backend for storage (so it can be used as reference)
-  const formData = new FormData();
-  formData.append('audio', audioBlob, filename);
-  formData.append('text', text);
-
-  const response = await fetch(`${API_BASE_URL}/upload-reference`, {
-    method: 'POST',
-    body: formData,
-  });
-
-  if (!response.ok) {
-    // If upload endpoint doesn't exist, create it or use the blob directly
-    // For now, return blob URL
-    const blobUrl = URL.createObjectURL(audioBlob);
-    return {
-      audioPath: filename,
-      audioUrl: blobUrl
-    };
-  }
-
-  const data = await response.json();
-  return {
-    audioPath: data.audio_path || filename,
-    audioUrl: data.audio_url || URL.createObjectURL(audioBlob)
-  };
 }

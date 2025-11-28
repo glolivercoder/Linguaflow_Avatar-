@@ -33,8 +33,8 @@ if not exist venv (
 )
 if exist venv (
     call venv\Scripts\activate
-    start "LinguaFlow Avatar - Pronunciation MFCC" cmd /k "call venv\Scripts\activate && python main.py"
-    echo [OK] Pronunciation Service MFCC iniciado >> "%LOG_FILE%"
+    start "LinguaFlow Avatar - Pronunciation" cmd /k "call venv\Scripts\activate && python main.py"
+    echo [OK] Pronunciation Service iniciado >> "%LOG_FILE%"
 ) else (
     echo [ERRO] Falha ao criar venv do Pronunciation Service.
     echo [ERRO] Falha ao criar venv do Pronunciation Service. >> "%LOG_FILE%"

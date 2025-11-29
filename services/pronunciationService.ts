@@ -266,7 +266,8 @@ export async function scorePronunciationMFCC(
  */
 export async function generateReferenceAudioUnified(
   text: string,
-  language: string = 'en-US'
+  language: string = 'en-US',
+  options?: any // Using any to avoid circular dependency issues if types are not exported, but ideally import TTSOptions
 ): Promise<{ audioPath: string; audioUrl: string }> {
   // Import the unified TTS function
   const { generateSpeechWithFallback } = await import('./unifiedTtsWithFallback');
@@ -275,7 +276,8 @@ export async function generateReferenceAudioUnified(
   const audioBase64 = await generateSpeechWithFallback(
     text,
     language as any,
-    'female'
+    'female',
+    options
   );
 
   if (!audioBase64) {

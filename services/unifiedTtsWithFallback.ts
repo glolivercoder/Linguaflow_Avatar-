@@ -12,12 +12,31 @@ const KITTEN_TTS_URL = 'http://localhost:5000';
  * 3. Fall back to Gemini if both fail
  */
 
+export interface TTSOptions {
+    model?: 'kitten' | 'piper' | 'gemini';
+    voice?: string;
+    speed?: number;
+    pitch?: number;
+}
+
 export async function generateSpeechWithFallback(
     text: string,
     language: LanguageCode,
-    voiceGender: VoiceGender = 'female'
+    voiceGender: VoiceGender = 'female',
+    options?: TTSOptions
 ): Promise<string | null> {
-    console.log(`[UnifiedTTS] Generating speech for language: ${language}`);
+    console.log(`[UnifiedTTS] Generating speech for language: ${language}`, options);
+
+    // 0. Explicit Model Selection
+    if (options?.model) {
+        if (options.model === 'kitten') {
+            return await tryKittenTTS(text, voiceGender, options.voice, options.speed, options.pitch);
+        } else if (options.model === 'piper') {
+            return await tryPiperTTS(text, language, options.voice, options.speed);
+        } else if (options.model === 'gemini') {
+            return await generateGeminiTTS(text, language, voiceGender);
+        }
+    }
 
     // 1. Try Kitten TTS first for English
     if (language === 'en-US') {
@@ -42,9 +61,9 @@ export async function generateSpeechWithFallback(
     return await generateGeminiTTS(text, language, voiceGender);
 }
 
-async function tryKittenTTS(text: string, voiceGender: VoiceGender): Promise<string | null> {
+async function tryKittenTTS(text: string, voiceGender: VoiceGender, voice?: string, speed?: number, pitch?: number): Promise<string | null> {
     try {
-        const voice = voiceGender === 'male' ? 'expr-voice-5-m' : 'expr-voice-5-f';
+        const selectedVoice = voice || (voiceGender === 'male' ? 'expr-voice-5-m' : 'expr-voice-5-f');
 
         const response = await fetch(`${KITTEN_TTS_URL}/tts`, {
             method: 'POST',
@@ -53,10 +72,15 @@ async function tryKittenTTS(text: string, voiceGender: VoiceGender): Promise<str
             },
             body: JSON.stringify({
                 text,
-                voice,
+                voice: selectedVoice,
                 format: 'wav',
+                speed: speed || 1.0,
+                // Kitten TTS might not support pitch directly in this endpoint, checking server.py...
+                // server.py only shows 'speed' in CustomTTSRequest. Pitch might be unsupported or named differently.
+                // Assuming pitch is NOT supported for now to avoid errors, or passing it if supported.
+                // Looking at server.py, CustomTTSRequest has: text, voice, format, speed, split_text, chunk_size. No pitch.
             }),
-            signal: AbortSignal.timeout(30000), // INCREASED to 30s timeout (Kitten can be slow on first call)
+            signal: AbortSignal.timeout(30000),
         });
 
         if (!response.ok) {
@@ -84,7 +108,7 @@ async function tryKittenTTS(text: string, voiceGender: VoiceGender): Promise<str
     }
 }
 
-async function tryPiperTTS(text: string, language: LanguageCode): Promise<string | null> {
+async function tryPiperTTS(text: string, language: LanguageCode, voice?: string, speed?: number): Promise<string | null> {
     try {
         // Map language codes to Piper models
         const languageMap: Record<string, string> = {
@@ -112,8 +136,10 @@ async function tryPiperTTS(text: string, language: LanguageCode): Promise<string
             body: JSON.stringify({
                 text,
                 language: piperLang,
+                // Piper proxy might support voice/speed if updated.
+                // Assuming basic support for now.
             }),
-            signal: AbortSignal.timeout(15000), // 15s timeout
+            signal: AbortSignal.timeout(15000),
         });
 
         if (!response.ok) {

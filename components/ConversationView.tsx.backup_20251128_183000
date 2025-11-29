@@ -121,12 +121,8 @@ interface ConversationViewProps {
     autoPreprocessProgress?: number;
 }
 
-import TTSSettingsModal, { TTSSettings, DEFAULT_TTS_SETTINGS } from './TTSSettingsModal';
-
 const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashcard, isAutoPreprocessing, autoPreprocessStatus, autoPreprocessProgress }) => {
     const [avatarImageBase64, setAvatarImageBase64] = useState<string | null>(null);
-    const [ttsSettings, setTtsSettings] = useState<TTSSettings>(DEFAULT_TTS_SETTINGS);
-    const [isTTSModalOpen, setIsTTSModalOpen] = useState(false);
 
     // Load default avatar image
     useEffect(() => {
@@ -1143,83 +1139,73 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
                                     {autoPrepStatus}
                                 </span>
                             )}
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={() => setIsTTSModalOpen(true)}
-                                    className="px-2 py-1 text-xs rounded-md bg-gray-700 hover:bg-gray-600 text-white flex items-center gap-1 border border-gray-600"
-                                    title="Configurações de Voz (TTS)"
-                                >
-                                    <Icons.SpeakerIcon className="w-3 h-3" />
-                                    TTS
-                                </button>
-                                <button
-                                    onClick={async () => {
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        const sectionIdx = activeCategoryDefinition?.sections.findIndex(s => s.type === 'qa') ?? -1;
+                                        if (sectionIdx < 0) return;
+                                        const englishSection = translatedByLangRef.current['en-US']?.[selectedCategoryKey!]?.sections[sectionIdx] as QASection | undefined;
+                                        const enItem = englishSection?.items?.[0] as QAItem | undefined;
+                                        const baseItem = (activeCategoryDefinition!.sections[sectionIdx] as QASection).items[0] as QAItem;
+                                        const enQ = enItem?.question ?? baseItem.question;
+                                        const enA = enItem?.answer ?? baseItem.answer;
+                                        setStatus('Reproduzindo TTS...');
+                                        await playAudio(enQ, 'en-US', settings.voiceGender);
+                                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                                        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+                                        const src = ctx.createMediaStreamSource(stream);
+                                        const proc = ctx.createScriptProcessor(4096, 1, 1);
+                                        const chunks: Int16Array[] = [];
+                                        setIsMicTransientActive(true);
+                                        setStatus('Gravando resposta por 2.5s...');
+                                        proc.onaudioprocess = (event) => {
+                                            const inputData = event.inputBuffer.getChannelData(0);
+                                            const int16 = new Int16Array(inputData.length);
+                                            for (let i = 0; i < inputData.length; i++) int16[i] = Math.max(-32768, Math.min(32767, inputData[i] * 32768));
+                                            chunks.push(int16);
+                                        };
+                                        src.connect(proc);
+                                        proc.connect(ctx.destination);
+                                        await new Promise(r => setTimeout(r, 10000));
+                                        try { proc.disconnect(); } catch { }
+                                        try { src.disconnect(); } catch { }
+                                        stream.getTracks().forEach(t => t.stop());
+                                        setIsMicTransientActive(false);
+                                        const merged = mergeInt16Chunks(chunks);
+                                        const base64 = encodeInt16ToWavBase64(merged, ctx.sampleRate || 16000);
+                                        const binary = atob(base64);
+                                        const buf = new Uint8Array(binary.length);
+                                        for (let i = 0; i < binary.length; i++) buf[i] = binary.charCodeAt(i);
+                                        const blob = new Blob([buf], { type: 'audio/wav' });
+                                        setStatus('Transcrevendo áudio...');
                                         try {
-                                            const sectionIdx = activeCategoryDefinition?.sections.findIndex(s => s.type === 'qa') ?? -1;
-                                            if (sectionIdx < 0) return;
-                                            const englishSection = translatedByLangRef.current['en-US']?.[selectedCategoryKey!]?.sections[sectionIdx] as QASection | undefined;
-                                            const enItem = englishSection?.items?.[0] as QAItem | undefined;
-                                            const baseItem = (activeCategoryDefinition!.sections[sectionIdx] as QASection).items[0] as QAItem;
-                                            const enQ = enItem?.question ?? baseItem.question;
-                                            const enA = enItem?.answer ?? baseItem.answer;
-                                            setStatus('Reproduzindo TTS...');
-                                            await playAudio(enQ, 'en-US', settings.voiceGender);
-                                            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                                            const ctx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-                                            const src = ctx.createMediaStreamSource(stream);
-                                            const proc = ctx.createScriptProcessor(4096, 1, 1);
-                                            const chunks: Int16Array[] = [];
-                                            setIsMicTransientActive(true);
-                                            setStatus('Gravando resposta por 2.5s...');
-                                            proc.onaudioprocess = (event) => {
-                                                const inputData = event.inputBuffer.getChannelData(0);
-                                                const int16 = new Int16Array(inputData.length);
-                                                for (let i = 0; i < inputData.length; i++) int16[i] = Math.max(-32768, Math.min(32767, inputData[i] * 32768));
-                                                chunks.push(int16);
-                                            };
-                                            src.connect(proc);
-                                            proc.connect(ctx.destination);
-                                            await new Promise(r => setTimeout(r, 10000));
-                                            try { proc.disconnect(); } catch { }
-                                            try { src.disconnect(); } catch { }
-                                            stream.getTracks().forEach(t => t.stop());
-                                            setIsMicTransientActive(false);
-                                            const merged = mergeInt16Chunks(chunks);
-                                            const base64 = encodeInt16ToWavBase64(merged, ctx.sampleRate || 16000);
-                                            const binary = atob(base64);
-                                            const buf = new Uint8Array(binary.length);
-                                            for (let i = 0; i < binary.length; i++) buf[i] = binary.charCodeAt(i);
-                                            const blob = new Blob([buf], { type: 'audio/wav' });
-                                            setStatus('Transcrevendo áudio...');
-                                            try {
-                                                const vosk = await chatWithAudio({
-                                                    model: settings.openRouterModelId || 'google/gemma-2-9b-it',
-                                                    audioBase64: base64,
-                                                    systemPrompt: 'Transcribe the audio as English plain text. No extra commentary.',
-                                                    language: 'en-US'
-                                                });
-                                                const transcription = vosk.transcription || '';
-                                                setUserTranscript(transcription);
-                                                userTranscriptRef.current = transcription;
-                                            } catch (e) {
-                                                console.error('Falha na transcrição offline:', e);
-                                            }
-                                            setStatus('Analisando pronúncia...');
-                                            const result = await analyzePronunciation(blob, enA);
-                                            const ok = (result.text_accuracy || 0) >= 70 && (result.overall_score || 0) >= 60;
-                                            const key = `${selectedCategoryKey || 'none'}:${sectionIdx}:0`;
-                                            qaCompletedRef.current[key] = ok;
-                                            setQaCompleted({ ...qaCompletedRef.current });
+                                            const vosk = await chatWithAudio({
+                                                model: settings.openRouterModelId || 'google/gemma-2-9b-it',
+                                                audioBase64: base64,
+                                                systemPrompt: 'Transcribe the audio as English plain text. No extra commentary.',
+                                                language: 'en-US'
+                                            });
+                                            const transcription = vosk.transcription || '';
+                                            setUserTranscript(transcription);
+                                            userTranscriptRef.current = transcription;
                                         } catch (e) {
-                                            console.error('Falha ao reproduzir e gravar:', e);
+                                            console.error('Falha na transcrição offline:', e);
                                         }
-                                    }}
-                                    className="px-2 py-1 text-xs rounded-md bg-cyan-600 hover:bg-cyan-700 text-white"
-                                    title="Ouvir primeira frase e praticar"
-                                >
-                                    Ouvir & Praticar
-                                </button>
-                            </div>
+                                        setStatus('Analisando pronúncia...');
+                                        const result = await analyzePronunciation(blob, enA);
+                                        const ok = (result.text_accuracy || 0) >= 70 && (result.overall_score || 0) >= 60;
+                                        const key = `${selectedCategoryKey || 'none'}:${sectionIdx}:0`;
+                                        qaCompletedRef.current[key] = ok;
+                                        setQaCompleted({ ...qaCompletedRef.current });
+                                    } catch (e) {
+                                        console.error('Falha ao reproduzir e gravar:', e);
+                                    }
+                                }}
+                                className="px-2 py-1 text-xs rounded-md bg-cyan-600 hover:bg-cyan-700 text-white"
+                                title="Ouvir primeira frase e praticar"
+                            >
+                                Ouvir & Praticar
+                            </button>
                         </div>
                         {isTranslatingCategories && useTranslatedCategories && (
                             <p className="text-xs text-cyan-300">Traduzindo conteúdo...</p>
@@ -1249,13 +1235,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
                                                         try {
                                                             // 1. Play Question (Audible)
                                                             setStatus('Ouvindo pergunta...');
-                                                            const qOptions = {
-                                                                model: ttsSettings.questionModel,
-                                                                voice: ttsSettings.questionVoice,
-                                                                speed: ttsSettings.speed,
-                                                                pitch: ttsSettings.pitch
-                                                            };
-                                                            const qAudioBase64 = await generateSpeechWithFallback(enQ, 'en-US', settings.voiceGender, qOptions);
+                                                            const qAudioBase64 = await generateSpeechWithFallback(enQ, 'en-US', settings.voiceGender);
                                                             if (qAudioBase64) {
                                                                 const audioBlob = base64ToBlob(qAudioBase64, 'audio/wav');
                                                                 const audioUrl = URL.createObjectURL(audioBlob);
@@ -1277,13 +1257,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
                                                             setStatus('Preparando avaliação...');
                                                             let audioPath = referenceAudioCacheRef.current[enA];
                                                             if (!audioPath) {
-                                                                const aOptions = {
-                                                                    model: ttsSettings.answerModel,
-                                                                    voice: ttsSettings.answerVoice,
-                                                                    speed: ttsSettings.speed,
-                                                                    pitch: ttsSettings.pitch
-                                                                };
-                                                                const result = await generateReferenceAudioUnified(enA, 'en-US', aOptions);
+                                                                const result = await generateReferenceAudioUnified(enA, 'en-US');
                                                                 audioPath = result.audioPath;
                                                                 referenceAudioCacheRef.current[enA] = audioPath;
                                                             }
@@ -1581,13 +1555,6 @@ const ConversationView: React.FC<ConversationViewProps> = ({ settings, addFlashc
                     </div>
                 </div>
             )}
-
-            <TTSSettingsModal
-                isOpen={isTTSModalOpen}
-                onClose={() => setIsTTSModalOpen(false)}
-                settings={ttsSettings}
-                onSave={setTtsSettings}
-            />
         </div >
     );
 };
@@ -1615,6 +1582,10 @@ const PronunciationPractice: React.FC<{ settings: Settings }> = ({ settings }) =
             mediaRecorderRef.current.onstop = async () => {
                 setIsLoading(true);
                 const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                // For simplicity, we'll use a text-based correction model.
+                // A real implementation would transcribe audio to text first.
+                // Here, we simulate transcription for demonstration.
+                // This is a placeholder; real audio transcription would be complex.
                 const userTranscription = `(Transcrição simulada) ${textToPractice}`;
 
                 const learningLangName = SUPPORTED_LANGUAGES.find(l => l.code === settings.learningLanguage)?.name || settings.learningLanguage;

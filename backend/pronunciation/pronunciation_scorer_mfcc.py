@@ -36,8 +36,8 @@ class MFCCPronunciationScorer:
         """
         self.n_mfcc = n_mfcc
         self.sample_rate = sample_rate
-        self.threshold_excellent = threshold_excellent
-        self.threshold_good = threshold_good
+        self.threshold_excellent = 1.5  # Stricter threshold for excellent
+        self.threshold_good = 3.0       # Stricter threshold for good
         logger.info(f"MFCC Scorer initialized: n_mfcc={n_mfcc}, sr={sample_rate}")
     
     def extract_mfcc(self, audio_path: str) -> np.ndarray:
@@ -119,6 +119,23 @@ class MFCCPronunciationScorer:
             Dict with scores and feedback
         """
         try:
+            # Load audio to check for silence/energy
+            y_user, sr_user = librosa.load(user_audio_path, sr=self.sample_rate, mono=True)
+            
+            # Check for silence/low energy
+            rms = librosa.feature.rms(y=y_user)
+            if np.mean(rms) < 0.005:  # Threshold for silence
+                logger.warning("User audio is too silent/low energy. Skipping scoring.")
+                return {
+                    "overall_score": 0,
+                    "dtw_distance": 999,
+                    "quality_label": "poor",
+                    "detailed_feedback": "⚠️ Não consegui ouvir você. Verifique seu microfone ou fale mais alto.",
+                    "pronunciation_accuracy": 0,
+                    "mfcc_shape_user": (0,0),
+                    "mfcc_shape_reference": (0,0)
+                }
+
             # Extract MFCCs
             user_mfcc = self.extract_mfcc(user_audio_path)
             reference_mfcc = self.extract_mfcc(reference_audio_path)
@@ -149,6 +166,8 @@ class MFCCPronunciationScorer:
                 overall_score, quality_label, dtw_distance
             )
             
+            logger.info(f"Real-time MFCC Analysis Complete: Score={overall_score:.2f}, DTW={dtw_distance:.4f}")
+            
             return {
                 "overall_score": round(overall_score, 2),
                 "dtw_distance": round(dtw_distance, 4),
@@ -172,19 +191,23 @@ class MFCCPronunciationScorer:
         """Generate user-friendly feedback based on score"""
         
         if quality == "excellent":
-            return f"🎉 Excelente pronúncia! Você está {score:.0f}% próximo do nativo. Continue assim!"
+            return f"🎉 Excelente! Sua entonação e ritmo estão muito próximos do nativo (Distância: {dtw_distance:.2f})."
         elif quality == "good":
-            return f"✅ Boa pronúncia! Score: {score:.0f}%. Pequenos ajustes podem deixar ainda melhor."
+            return f"✅ Muito bom! Score: {score:.0f}%. Tente focar na clareza das vogais para melhorar ainda mais."
         else:
             suggestions = []
-            if dtw_distance > 6:
-                suggestions.append("Tente falar mais devagar e articular melhor cada palavra")
-            if dtw_distance > 8:
-                suggestions.append("Ouça o áudio de referência várias vezes antes de gravar")
+            if dtw_distance > 5:
+                suggestions.append("Tente falar um pouco mais devagar")
+            if dtw_distance > 7:
+                suggestions.append("Articule bem cada sílaba")
+            if dtw_distance > 9:
+                suggestions.append("O ritmo parece diferente do original")
             
             feedback = f"📚 Continue praticando! Score: {score:.0f}%. "
             if suggestions:
                 feedback += " Dicas: " + "; ".join(suggestions)
+            else:
+                feedback += "Tente imitar a melodia da frase."
             
             return feedback
     
